@@ -6,9 +6,6 @@ author:
   - name: Luke Heley
     url: https://lajh87.github.io
 date: 06-20-2021
-output:
-  distill::distill_article:
-    self_contained: true
 ---
 
 
