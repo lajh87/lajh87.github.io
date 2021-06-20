@@ -1,0 +1,12 @@
+name: "lajh87.github.io"
+title: "lajh87.github.io"
+description: |
+  lajh87.github.io
+output_dir: "docs"
+navbar:
+  right:
+    - text: "Home"
+      href: index.html
+    - text: "About"
+      href: about.html
+output: distill::distill_article
