@@ -56,14 +56,14 @@ waloa <- sf::read_sf("~/data/Wales_oac_2011/wales_oac_2011.shp")
 
 ```
 
-## Load the Unemployment Data
+## Load the Year Left Work Data
 
 ```{r}
-unem <- readr::read_csv("Data_AGE_UNIT_YEARLW.csv") %>%
+yearlw <- readr::read_csv("Data_AGE_UNIT_YEARLW.csv") %>%
   dplyr::select(-CDU_ID, -X18) %>%
   dplyr::filter(!is.na(GEO_CODE))
 
-unem[,5:16] <- unem[,5:16] %>% purrr::map_if(is.character, as.numeric) # Convert to Numeric
+yearlw[,5:16] <- yearlw[,5:16] %>% purrr::map_if(is.character, as.numeric) # Convert to Numeric
 
 ```
 
@@ -71,12 +71,12 @@ unem[,5:16] <- unem[,5:16] %>% purrr::map_if(is.character, as.numeric) # Convert
 
 ```{r}
 # Join Together
-uk_unem <- 
+uk_yearlw <- 
   engoa %>% dplyr::select(GEO_CODE = code) %>%
   dplyr::bind_rows(scooa %>% dplyr::select(GEO_CODE = code)) %>%
   dplyr::bind_rows(niroa %>% dplyr::select(GEO_CODE = code)) %>%
   dplyr::bind_rows(waloa %>% dplyr::select(GEO_CODE = code)) %>%
-  dplyr::left_join(unem) 
+  dplyr::left_join(yearlw) 
 
 ```
 
@@ -93,7 +93,7 @@ lonlat_bng <- sf::st_transform(lonlat_wgs84, 27700)
 buffer_40k <- sf::st_buffer(lonlat_bng, 40e3)
 
 bbox <- sf::st_as_sfc(sf::st_bbox(buffer_40k))
-oa_bb <- uk_unem %>% sf::st_intersection(bbox)
+oa_bb <- uk_yearlw %>% sf::st_intersection(bbox)
 
 ```
 
@@ -130,8 +130,9 @@ urban_diff <- sf::st_difference(bbox, urban_bb_union) # Create hole in bounding 
 national_park_diff <- sf::st_difference(national_park, urban_bb_union) # Create hole
 
 main_river <- dplyr::filter(river, grepl("main", LEGEND, ignore.case = TRUE))
-oa_bb <- oa_bb %>% dplyr::mutate(unemployment_rate = F678/F676) %>%
-  dplyr::mutate(location_quotient = unemployment_rate/mean(unemployment_rate))
+
+oa_bb <- oa_bb %>% dplyr::mutate(employment_rate = F677/F676) %>%
+  dplyr::mutate(location_quotient = employment_rate/mean(employment_rate))
 
 national_boundary <- admin_line %>% dplyr::filter(CODE == 5710)
 ```
@@ -148,7 +149,7 @@ ggplot2::ggplot() +
   ggplot2::geom_sf(data = oa_bb, ggplot2::aes(fill = location_quotient), colour = NA) + 
   ggplot2::geom_sf(data = urban_diff,  fill="lightgrey", colour = NA) +
   ggplot2::geom_sf(data = uk_diff, fill = "steelblue", alpha = 0.5, colour = NA) +
-  ggplot2::geom_sf(data = national_boundary) + 
+  ggplot2::geom_sf(data = national_boundary, linetype = 2) + 
   ggplot2::geom_sf(data = coast_line, colour = NA) +
  # ggplot2::geom_sf(data = foreshore_region, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
   ggplot2::geom_sf(data = national_park_diff, colour = NA, fill = "darkgreen", alpha = 0.25)   +
@@ -161,9 +162,9 @@ ggplot2::ggplot() +
                           dplyr::filter(nchar(NAME)>1),
                         ggplot2::aes(label = NAME, size = FONT_SIZE),show.legend = FALSE) +
   ggplot2::scale_size_continuous(range = c(2,3)) +
-  ggplot2::scale_fill_gradient(low = "orange", high = "white",
-                               labels = calculate_labels(oa_bb$unemployment_rate),
-                               name = "Unemployment") +
+  ggplot2::scale_fill_gradient(low = "darkorange", high = "white",
+                               labels = calculate_labels(oa_bb$employment_rate),
+                               name = "Employment") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text = ggplot2::element_blank(),
                  axis.line = ggplot2::element_blank(),
@@ -188,15 +189,15 @@ oa_bb <- oa_bb %>%
 
 msoa <- oa_bb %>%
   dplyr::group_by(MSOAIZ_GSS_ID) %>%
-  dplyr::summarise(F678 = sum(F678), F676 = sum(F676)) %>%
-  dplyr::mutate(unemployment_rate = F678/F676) %>%
-  dplyr::mutate(location_quotient = unemployment_rate / mean(unemployment_rate))
+  dplyr::summarise(F677 = sum(F677), F676 = sum(F676)) %>%
+  dplyr::mutate(employment_rate = F677/F676) %>%
+  dplyr::mutate(location_quotient = employment_rate / mean(employment_rate))
 
 ggplot2::ggplot() +
   ggplot2::geom_sf(data = msoa, ggplot2::aes(fill = location_quotient), colour = NA) +
   ggplot2::geom_sf(data = urban_diff,  fill="lightgrey", colour = NA) +
   ggplot2::geom_sf(data = uk_diff, fill = "steelblue", alpha = 0.5, colour = NA) +
-  ggplot2::geom_sf(data = national_boundary) + 
+  ggplot2::geom_sf(data = national_boundary, linetype = 2) + 
   ggplot2::geom_sf(data = coast_line, colour = NA) +
   # ggplot2::geom_sf(data = foreshore_region, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
   ggplot2::geom_sf(data = national_park_diff, colour = NA, fill = "darkgreen", alpha = 0.25)   +
@@ -209,9 +210,9 @@ ggplot2::ggplot() +
                           dplyr::filter(nchar(NAME)>1),
                         ggplot2::aes(label = NAME, size = FONT_SIZE),show.legend = FALSE) +
   ggplot2::scale_size_continuous(range = c(2,3)) +
-  ggplot2::scale_fill_gradient(low = "orange", high = "white",
-                               labels = calculate_labels(msoa$unemployment_rate),
-                               name = "Unemployment") +
+  ggplot2::scale_fill_gradient(low = "darkorange", high = "white",
+                               labels = calculate_labels(msoa$employment_rate),
+                               name = "Employment") +
   ggplot2::theme_minimal() +
   ggplot2::theme(axis.text = ggplot2::element_blank(),
                  axis.line = ggplot2::element_blank(),
