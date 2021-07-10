@@ -1,0 +1,225 @@
+---
+title: "Better Chroropleths with DataShine"
+description: |
+  This post is inspired by Oliver O'Brien & James Cheshire (2016) DataShine 
+  application which overlays urban areas onto Choropleths so the data
+  shines through the map. Thereby overcomming a common shortfall with Choropleths
+  on areas with uneven population densities.
+author:
+  - name: Luke Heley
+    url: https://lajh87.github.io
+date: 07-10-2021
+output:
+  distill::distill_article:
+    self_contained: false
+---
+
+
+
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, results = "as-is")
+library(magrittr)
+library(ggmap)
+```
+
+
+# Objective
+
+This post is inspired by [Oliver O'Brien & James Cheshire (2016)][1] DataShine
+application which overlays urban areas onto Choropleths so that the 
+data shines through the urban areas on the amp. This overcomes a common
+criticism of Choropleth maps that they make data in less densely populated areas
+appear more prominent that it is.
+
+# Data
+
+Data are sourced from the UK Data Service:
+
+* https://borders.ukdataservice.ac.uk/bds.html
+* http://infuse2011gf.ukdataservice.ac.uk/infusewizgeo.aspx
+* https://borders.ukdataservice.ac.uk/easy_download.html
+
+And the Ordnance Survey Boundary-Line and Straegi datasets.
+
+* https://osdatahub.os.uk/downloads/open
+
+## Load the Shapefiles
+
+```{r}
+
+# Load Output Areas By Country
+engoa <- sf::read_sf("~/data/England_oac_2011/england_oac_2011.shp")
+scooa <- sf::read_sf("~/data/Scotland_oac_2011/scotland_oac_2011.shp")
+niroa <- sf::read_sf("~/data/NIreland_sa_2011_oac/nireland_sa_2011_oac.shp")
+waloa <- sf::read_sf("~/data/Wales_oac_2011/wales_oac_2011.shp")
+
+```
+
+## Load the Unemployment Data
+
+```{r}
+unem <- readr::read_csv("Data_AGE_UNIT_YEARLW.csv") %>%
+  dplyr::select(-CDU_ID, -X18) %>%
+  dplyr::filter(!is.na(GEO_CODE))
+
+unem[,5:16] <- unem[,5:16] %>% purrr::map_if(is.character, as.numeric) # Convert to Numeric
+
+```
+
+## Join Together
+
+```{r}
+# Join Together
+uk_unem <- 
+  engoa %>% dplyr::select(GEO_CODE = code) %>%
+  dplyr::bind_rows(scooa %>% dplyr::select(GEO_CODE = code)) %>%
+  dplyr::bind_rows(niroa %>% dplyr::select(GEO_CODE = code)) %>%
+  dplyr::bind_rows(waloa %>% dplyr::select(GEO_CODE = code)) %>%
+  dplyr::left_join(unem) 
+
+```
+
+## Create Bounding Box of 40km Around Carlisle
+
+We explore Carlisle to test the data at the border.
+
+```{r}
+# Get Lon-Lat Coordinate and Create Bounding Box of n meters
+lonlat <- ggmap::geocode("Carlisle, Cumbria")
+lonlat_wgs84 <-  lonlat %>% as.matrix() %>% sf::st_point() %>%
+  sf::st_sfc() %>% sf::st_set_crs(4326)
+lonlat_bng <- sf::st_transform(lonlat_wgs84, 27700)
+buffer_40k <- sf::st_buffer(lonlat_bng, 40e3)
+
+bbox <- sf::st_as_sfc(sf::st_bbox(buffer_40k))
+oa_bb <- uk_unem %>% sf::st_intersection(bbox)
+
+```
+
+## Load the Ordnance Survey Data Clipped to Bounding Box
+
+```{r}
+admin_line <- sf::read_sf("~/data/strtgi_essh_gb/data/admin_line.shp") %>% sf::st_intersection(bbox)
+coast_line <- sf::read_sf("~/data/strtgi_essh_gb/data/coastline.shp") %>% sf::st_intersection(bbox)
+foreshore_region <- sf::read_sf("~/data/strtgi_essh_gb/data/foreshor_region.shp") %>% sf::st_intersection(bbox)
+urban <- sf::read_sf("~/data/strtgi_essh_gb/data/urban_region.shp")
+a_road <- sf::read_sf("~/data/strtgi_essh_gb/data/a_road.shp") %>% sf::st_intersection(bbox)
+motorway <- sf::read_sf("~/data/strtgi_essh_gb/data/motorway.shp") %>% sf::st_intersection(bbox)
+lake <- sf::read_sf("~/data/strtgi_essh_gb/data/lakes_region.shp") %>% sf::st_intersection(bbox)
+river <- sf::read_sf("~/data/strtgi_essh_gb/data/rivers_line.shp") %>% sf::st_intersection(bbox)
+woodland <- sf::read_sf("~/data/strtgi_essh_gb/data/woodland_region.shp") %>% sf::st_intersection(bbox)
+national_park <- sf::read_sf("~/data/strtgi_essh_gb/data/national_park.shp") %>% sf::st_intersection(bbox)
+general_text <- sf::read_sf("~/data/strtgi_essh_gb/data/general_text.shp") %>% sf::st_intersection(bbox)
+
+```
+
+## Process Data for Plotting
+
+```{r, fig.width=12, fig.height=8}
+# Load UK
+uk <- sf::read_sf("~/data/bdline_essh_gb/Data/Supplementary_Country/country_region.shp")
+uk <- sf::st_union(uk) # Dissolve Polygons into single region for the UK
+uk_bb <- uk %>% sf::st_intersection(bbox)
+uk_diff <- sf::st_difference(bbox, uk_bb)
+
+urban_bb <- urban %>% sf::st_intersection(bbox)
+urban_bb_union <- sf::st_union(urban_bb)
+urban_diff <- sf::st_difference(bbox, urban_bb_union) # Create hole in bounding box
+
+national_park_diff <- sf::st_difference(national_park, urban_bb_union) # Create hole
+
+main_river <- dplyr::filter(river, grepl("main", LEGEND, ignore.case = TRUE))
+oa_bb <- oa_bb %>% dplyr::mutate(unemployment_rate = F678/F676) %>%
+  dplyr::mutate(location_quotient = unemployment_rate/mean(unemployment_rate))
+
+national_boundary <- admin_line %>% dplyr::filter(CODE == 5710)
+```
+
+# Plot Map
+
+```{r, fig.width=12, fig.height=8}
+calculate_labels <- function(x, n = 4){
+  o <- seq(min(x), max(x), (max(x)-min(x))/n)
+  paste0(round(100*o,0),"%")
+}
+
+ggplot2::ggplot() +
+  ggplot2::geom_sf(data = oa_bb, ggplot2::aes(fill = location_quotient), colour = NA) + 
+  ggplot2::geom_sf(data = urban_diff,  fill="lightgrey", colour = NA) +
+  ggplot2::geom_sf(data = uk_diff, fill = "steelblue", alpha = 0.5, colour = NA) +
+  ggplot2::geom_sf(data = national_boundary) + 
+  ggplot2::geom_sf(data = coast_line, colour = NA) +
+ # ggplot2::geom_sf(data = foreshore_region, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = national_park_diff, colour = NA, fill = "darkgreen", alpha = 0.25)   +
+  ggplot2::geom_sf(data = lake, colour = NA, fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = main_river, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = a_road, colour = "darkgrey") +
+  ggplot2::geom_sf(data = motorway, colour = "darkgrey", lwd = 1) +
+  ggplot2::geom_sf_text(data = general_text %>%
+                          dplyr::filter(FONT_SIZE>=7) %>%
+                          dplyr::filter(nchar(NAME)>1),
+                        ggplot2::aes(label = NAME, size = FONT_SIZE),show.legend = FALSE) +
+  ggplot2::scale_size_continuous(range = c(2,3)) +
+  ggplot2::scale_fill_gradient(low = "orange", high = "white",
+                               labels = calculate_labels(oa_bb$unemployment_rate),
+                               name = "Unemployment") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_blank(),
+                 axis.line = ggplot2::element_blank(),
+                 axis.ticks = ggplot2::element_blank(),
+                 panel.grid = ggplot2::element_blank()
+                 ) +
+  ggplot2::labs(x = "", y = "") 
+
+```
+
+# Roll Up Data to MSOA and Plot
+
+```{r, fig.width=12, fig.height=8}
+# Load Lookup
+lookup <- readr::read_csv("all-areas-lookup.csv")
+
+oa_bb <- oa_bb %>%
+  dplyr::left_join(
+    lookup %>%
+      dplyr::select(GEO_CODE = OASA_GSS_ID, LSOADZ_GSS_ID, MSOAIZ_GSS_ID) 
+  )
+
+msoa <- oa_bb %>%
+  dplyr::group_by(MSOAIZ_GSS_ID) %>%
+  dplyr::summarise(F678 = sum(F678), F676 = sum(F676)) %>%
+  dplyr::mutate(unemployment_rate = F678/F676) %>%
+  dplyr::mutate(location_quotient = unemployment_rate / mean(unemployment_rate))
+
+ggplot2::ggplot() +
+  ggplot2::geom_sf(data = msoa, ggplot2::aes(fill = location_quotient), colour = NA) +
+  ggplot2::geom_sf(data = urban_diff,  fill="lightgrey", colour = NA) +
+  ggplot2::geom_sf(data = uk_diff, fill = "steelblue", alpha = 0.5, colour = NA) +
+  ggplot2::geom_sf(data = national_boundary) + 
+  ggplot2::geom_sf(data = coast_line, colour = NA) +
+  # ggplot2::geom_sf(data = foreshore_region, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = national_park_diff, colour = NA, fill = "darkgreen", alpha = 0.25)   +
+  ggplot2::geom_sf(data = lake, colour = NA, fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = main_river, colour = "steelblue", fill = "steelblue", alpha = 0.5) +
+  ggplot2::geom_sf(data = a_road, colour = "darkgrey") +
+  ggplot2::geom_sf(data = motorway, colour = "darkgrey", lwd = 1) +
+  ggplot2::geom_sf_text(data = general_text %>%
+                          dplyr::filter(FONT_SIZE>=7) %>%
+                          dplyr::filter(nchar(NAME)>1),
+                        ggplot2::aes(label = NAME, size = FONT_SIZE),show.legend = FALSE) +
+  ggplot2::scale_size_continuous(range = c(2,3)) +
+  ggplot2::scale_fill_gradient(low = "orange", high = "white",
+                               labels = calculate_labels(msoa$unemployment_rate),
+                               name = "Unemployment") +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_blank(),
+                 axis.line = ggplot2::element_blank(),
+                 axis.ticks = ggplot2::element_blank(),
+                 panel.grid = ggplot2::element_blank()
+  ) +
+  ggplot2::labs(x = "", y = "") 
+
+```
+
+[1]: https://www.tandfonline.com/doi/full/10.1080/17445647.2015.1060183

@@ -1,9 +1,19 @@
 ---
-title: "About this blog"
-description: |
-  Some additional details about the blog
+title: "Luke Heley"
+image: "luke.jpg"
+links:
+  - label: LinkedIn
+    url: "https://linkedin.com/lajh87"
+  - label: Twitter
+    url: "https://twitter.com/lajh87"
+  - label: GitHub
+    url: "https://github.com/lajh87"
+  - label: Email
+    url: "mailto:lukeheley@outlook.com"
+output:
+  postcards::jolla
 ---
+ 
+Economist and Data Scientist with nearly 10 years experience in the
+  UK Civil Service.
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
-```

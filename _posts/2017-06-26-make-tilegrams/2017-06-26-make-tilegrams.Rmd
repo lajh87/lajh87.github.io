@@ -1,0 +1,215 @@
+---
+title: "Recipe to Create Tilegrams"
+description: |
+  A recipe to create a Tilegram. This is where landmasses are converted to the
+  same size polygon.
+author:
+  - name: Luke Heley
+    url: https://lajh87.github.io
+date: 2017-06-26
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This blog post shows how to create tilegrams using simple triganometry and the optimisation algorithm in the `clue` package.
+
+
+1. Load required packages
+
+```{r, warning=F, message=F}
+p <- c("sp", "rgeos","rworldmap","ggplot2", "plotly", "plyr", "clue") # Load required packages
+sapply(p, function(x){if(!require(x,char=T)) install.packages(x); require(x,char=T)}); rm(p)
+```
+
+
+2. Load a map of Africa from the `rworldmap` package
+
+```{r}
+
+## Get Africa Data
+data("countriesCoarseLessIslands") #  Load simple map without islands
+afr <- countriesCoarseLessIslands[which(!is.na(countriesCoarseLessIslands@data$REGION) &  # Subset for Africa
+                                          countriesCoarseLessIslands@data$REGION=="Africa"),]
+
+## Project the map to use an equidistance grid
+wgs84 <- '+proj=longlat +datum=WGS84'
+wrldequi <- "+init=EPSG:32663"
+afr <- spTransform(afr, CRS(wrldequi))
+
+```
+
+3. Create helper functions
+
+```{r}
+# Function to convert degrees to radians (trigonemetry)
+deg2rad <- function(deg) {(deg * pi) / (180)}
+
+# Function to calculate hexagon side length from a given area
+hex_side <- function(area) (3^0.25)*sqrt(2*(area/9)) 
+
+# Function to calculate the area of a hexagon given it size
+hex_area <- function(side) ((3*sqrt(3))/2*side)
+
+# Function to draw a hexagon
+draw_hex <- function(area=hex_area(1), offset_x = 0, offset_y = 0, id=1, tessellate=F){
+  side_length <- hex_side(area)
+  A <- sin(deg2rad(30)) * side_length
+  B <- sin(deg2rad(60)) * side_length
+  C <- side_length
+
+  (x <- c(0, 0, B, 2*B, 2*B, B) + (offset_x*B*2) + ifelse(tessellate == T,  B, 0))
+  (y <- c(A+C, A, 0, A, A+C, 2*C) + (offset_y*(A+C)))
+
+  Polygons(list(Polygon(coords = matrix(c(x,y),ncol=2),hole = F)),ID=id)
+}
+
+# Function to get area of polygons
+getArea <-  function(x) {
+  getAreaPolygons = function(x) {
+    holes = unlist(lapply(x@Polygons, function(x) x@hole))
+    areas = unlist(lapply(x@Polygons, function(x) x@area))
+    area = ifelse(holes, -1, 1) * areas
+    area
+  }
+  sum(unlist(lapply(x@polygons, getAreaPolygons)))
+}
+
+# Function to get the average area of polygons
+getAvgArea <- function(x){
+  l <- length(x)
+  avgArea <- getArea(x)/l
+  return(avgArea)
+}
+
+# Function to draw hexagon tiles in a tessellated grid
+draw_hexTiles <- function(area, offset_x_start=0, offset_x_end=4, offset_y_start=0, offset_y_end =4, id){
+  grid <- expand.grid(offset_x_start:offset_x_end, offset_y_start:offset_y_end)
+  grid$tessellate <- grid[,2] %% 2 == 0
+
+  hexes <- SpatialPolygons(lapply(1:nrow(grid), function(i){
+    draw_hex(area, offset_x = grid[i,1], offset_y = grid[i,2], id =i, tessellate = grid[i,3])
+
+  }))
+
+  names(grid) <- c("offset_x", "offset_y", "tessellate")
+
+  grid <- data.frame(id = 1:nrow(grid),grid)
+
+  SpatialPolygonsDataFrame(hexes, grid)
+}
+
+
+# Function to create tessellated hexagon tiles over a bounding box
+hex_tiles <- function(x, cellsize=NULL){
+
+  if(is.null(cellsize)) cellsize <- getAvgArea(x)
+
+  b <- bbox(x)
+  dx <- b["x", "max"] - b["x", "min"]
+  dy <- b["y", "max"] - b["y", "min"]
+
+  C <- hex_side(cellsize)
+  A <- sin(deg2rad(30)) * C
+  B <- sin(deg2rad(60)) * C
+
+  hexAcross <- ceiling(dx/(B*2))
+  hexUp <- ceiling(dy/((A+C)))
+
+  offset_x_start <- floor(b["x", "min"]/(B*2))
+  offset_y_start <- floor(b["y", "min"]/((A+C)))
+  offset_x_end <- offset_x_start + hexAcross
+  offset_y_end <- offset_y_start + hexUp
+
+  hex_grid <- draw_hexTiles(cellsize, offset_x_start, offset_x_end, offset_y_start, offset_y_end, i)
+  proj4string(hex_grid) <- proj4string(x)
+  return(hex_grid)
+}
+```
+
+5. The function below creates a tilegram in R by implementing the 'Hungarian Algorithm' in the `clue` package
+
+
+```{r}
+makeTilegram <- function(sp,cellsize=NULL){
+
+  tiles <- hex_tiles(sp,cellsize) # Create hexagon tiles
+ # sp_b <- rgeos::gBuffer(afr, width = 1.1*hex_side(getAvgArea(sp)))
+ # tiles <- tiles[sp_b,]
+
+  pts <- rgeos::gCentroid(sp,byid = T)
+  pts <- SpatialPointsDataFrame(pts, data.frame(pt_id = row.names(pts), stringsAsFactors = F))
+
+  tileCentroids <- rgeos::gCentroid(tiles, T)
+  tileCentroids <- SpatialPointsDataFrame(tileCentroids, data.frame(id = row.names(tileCentroids),stringsAsFactors = F))
+
+  distance <- rgeos::gDistance(tileCentroids, pts, byid=T)
+  tile_pref <- t(apply(distance,1, function(x) rank(x,ties.method ="random")))
+
+  solved <- solve_LSAP(tile_pref, maximum = FALSE)
+  solved_cols <- as.numeric(solved)
+
+  newDat <- data.frame(tile_region= row.names(tile_pref), id = as.numeric(colnames(tile_pref)[solved_cols]), stringsAsFactors = F)
+
+  newTiles <- tiles
+  newTiles@data <- join(newTiles@data, newDat, by="id")
+  newTiles <- newTiles[!is.na(newTiles$tile_region),]
+
+  return(newTiles)
+
+}
+```
+
+7. Make a tilegram of africa.
+
+```{r}
+tileGram <- makeTilegram(afr)
+tileGram_f <- fortify(tileGram)
+tileGram_f <- join(tileGram_f, tileGram@data,by="id")
+
+p <- ggplot(tileGram_f) +
+  geom_polygon(aes(long, lat, group = group, fill=as.numeric(id), text = tile_region)) +coord_equal() +
+  theme(legend.position = "none", panel.background = element_blank(), axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+
+ggplotly(width = 500,height=500)
+```
+
+8. Plot Normal Map for Comparison
+
+```{r}
+afr_f <- fortify(afr)
+p <- ggplot(afr_f) +
+  geom_polygon(aes(long, lat, group = group, fill=as.numeric(as.factor(id)), text = id)) +coord_equal() +
+  theme(legend.position = "none", panel.background = element_blank(), axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+
+ggplotly(width = 500,height=500)
+
+```
+
+9. Now the world!
+
+```{r}
+wrld <- countriesCoarseLessIslands[which(!is.na(countriesCoarseLessIslands@data$REGION) & countriesCoarseLessIslands@data$REGION != "Antarctica"),]
+wrldequi <- "+init=EPSG:32663"
+wrld <- spTransform(wrld, CRS(wrldequi))
+
+tileGram <- makeTilegram(wrld,cellsize = getAvgArea(afr))
+
+tileGram_f <- fortify(tileGram)
+tileGram_f <- join(tileGram_f, tileGram@data,by="id")
+
+p <- ggplot(tileGram_f) +
+  geom_polygon(aes(long, lat, group = group, fill=as.numeric(id), text = tile_region)) +coord_equal() +
+  theme(legend.position = "none", panel.background = element_blank(), axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+
+ggplotly(width = 500,height=500)
+
+wrld_f <- fortify(wrld)
+p <- ggplot(wrld_f) +
+  geom_polygon(aes(long, lat, group = group, fill=as.numeric(as.factor(id)), text = id)) +coord_equal() +
+  theme(legend.position = "none", panel.background = element_blank(), axis.title = element_blank(), axis.text = element_blank(), axis.ticks = element_blank())
+
+ggplotly(width = 500,height=500)
+```

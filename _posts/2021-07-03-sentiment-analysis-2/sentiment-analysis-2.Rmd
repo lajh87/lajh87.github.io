@@ -1,0 +1,122 @@
+---
+title: "Comparison of Sentiment Analysis over Time"
+description: |
+  Comparison of PAC Hearing Oral Evidence.
+author:
+  - name: Luke Heley
+    url: https://lajh87.github.io
+date: 07-03-2021
+output:
+  distill::distill_article:
+    self_contained: false
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Objective 
+
+Compare sentiment data from Public Accounts Committee Oral Evidence Hearings.
+
+# Data
+
+Load and preprocess the data.
+
+```{r}
+library(magrittr)
+
+load("pac_defence_equip.rda")
+meta <- pac_defence_equip$meta
+text <- pac_defence_equip$transcript
+
+meta$publication_date[15] <- "Wednesday 1 March 2017"
+meta$publication_date <- as.Date(meta$publication_date, format = "%A %d %B %Y")
+
+
+```
+
+# Process Data
+
+Process data from sentiment analysis.
+
+```{r}
+sentiment <- text %>%
+  dplyr::group_split(publication_reference) %>%
+  purrr::map_df(function(x) {
+    x %>% 
+      sentimentr::get_sentences() %>%
+      sentimentr::sentiment_by(
+        ., 
+        by = c("publication_reference","paragraph_id", 
+               "person")) %>%
+      sentimentr::uncombine()
+  }) %>%
+  dplyr::left_join(
+    meta %>% 
+      dplyr::select(publication_reference, 
+                    inquiry, report_title, 
+                    publication_date, session)
+    ) %>%
+  dplyr::arrange(session)
+
+# https://stackoverflow.com/questions/43251214/composited-sparkline-in-r-with-dt-and-shiny
+
+createSpark <- function(x){
+    if(length(x)<100){
+      x <- stats::approx(x = seq_along(x), y = x, n = 100)[['y']]
+    }
+    sparkline::sparkline(syuzhet::get_dct_transform(x)) %>%
+      htmltools::as.tags() %>%
+      as.character()
+}
+
+createSparkBox <- function(x){
+  sparkline::sparkline(x, type = "box") %>%
+      htmltools::as.tags() %>%
+      as.character()
+}
+
+createSparkBar <- function(x){
+  sparkline::sparkline(x, type = "bar") %>%
+      htmltools::as.tags() %>%
+      as.character()
+}
+
+sentiment %>%
+  dplyr::group_by(session, report_title, inquiry,
+                  publication_date, publication_reference) %>%
+  dplyr::summarise(spark = createSpark(sentiment),
+                   sparkBox = createSparkBox(sentiment),
+                   .groups = "drop") %>% 
+    DT::datatable(escape = F,
+              rownames = F,
+              options = list(fnDrawCallback = htmlwidgets::JS('function(){
+                                                              HTMLWidgets.staticRender();
+                                                              }'))
+    ) %>% 
+    sparkline::spk_add_deps()
+
+```
+
+## Sentiment Over Time
+
+Visualise sentiment over time.
+
+```{r}
+sentiment %>%
+  dplyr::group_by(publication_date) %>%
+  dplyr::summarise(mu = mean(sentiment),
+                   sd = sd(sentiment),
+                   n = dplyr::n()) %>%
+  ggplot2::ggplot() +
+  ggplot2::geom_point(ggplot2::aes(publication_date, mu), colour ='#E69F00' ) +
+  ggplot2::geom_errorbar(ggplot2::aes(publication_date, ymin=mu-(sd), ymax=mu+(sd)), width=.2,
+                 position=ggplot2::position_dodge(0.05), colour = '#999999') +
+  ggplot2::geom_line(ggplot2::aes(publication_date, mu), colour = '#999999')  + 
+  ggplot2::theme_classic() 
+  
+```

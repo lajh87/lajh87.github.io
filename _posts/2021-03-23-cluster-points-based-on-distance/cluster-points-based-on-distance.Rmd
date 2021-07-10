@@ -1,0 +1,169 @@
+---
+title: "Cluster Points based on Distance"
+description: |
+  A recipe to cluster coordinates based on a specified distance between them.
+author:
+  - name: Luke Heley
+    url: https://lajh87.github.io
+date: 03-23-2021
+output: distill::distill_article
+---
+
+Load [margrittr](https://magrittr.tidyverse.org/). Functions from other packages
+are called directly with `::`.
+
+```{r setup}
+library(magrittr)
+```
+
+Generate function to calculate new coordinates given current coordinates an 
+angle in degrees (a) and a given distance (d).
+
+```{r}
+#' Convert degrees to radians
+deg2rad  <- function(x) {x * pi/180} 
+
+#' Calculate new coordinates for point given angle and distance
+distance_from_point <- function(coord, a, d){
+  x <- coord[1]
+  y <- coord[2]
+  
+  xx <- x + (d * cos(deg2rad(a)))
+  yy <- y + (d * sin(deg2rad(a)))
+  
+  c(x = xx, y = yy)
+} 
+
+```
+
+Generate points with two distinct clusters and plot.
+
+```{r}
+label <- c("A", "B", "C", "D", "E", "F", "G")
+nodes <- dplyr::bind_rows(
+  distance_from_point(c(0,0), 0, 0),
+  distance_from_point(c(0,0), 60, -10),
+  distance_from_point(c(0,0), 120, -10),
+  distance_from_point(c(0,0), 120, -20),
+  distance_from_point(c(0,0), 120, -30),
+  distance_from_point(c(40,0), 0, 0),
+  distance_from_point(c(40,0), 90, -10)
+  ) %>%
+  dplyr::mutate(id = label) %>%
+  dplyr::select(.data$id, .data$x, .data$y)
+
+
+ggplot2::ggplot(nodes, ggplot2::aes(x, y, label = id)) + 
+  ggplot2::geom_point() +
+  ggplot2::geom_label()
+
+```
+
+Calculate the distance between each point and plot.
+
+```{r}
+links <- tidyr::expand_grid(from = label, to = label) %>%
+  dplyr::left_join(
+    nodes %>% 
+      dplyr::rename(from = .data$id, 
+                    from_x = .data$x, 
+                    from_y = .data$y),
+    by = "from"
+  ) %>%
+  dplyr::left_join(
+    nodes %>% 
+      dplyr::rename(to = .data$id, 
+                    to_x = .data$x, 
+                    to_y = .data$y),
+    by = "to"
+  ) %>%
+  dplyr::mutate(distance = sqrt((.data$to_x - .data$from_x)^2 + 
+                                  (.data$to_y - .data$from_y)^2)) 
+
+links10m <- links %>% dplyr::filter(.data$distance <= 10)
+ggplot2::ggplot(links10m) + 
+  ggplot2::geom_segment(ggplot2::aes(x = from_x, y = from_y, 
+                                     xend = to_x, yend = to_y)) + 
+  ggplot2::geom_label(data = nodes, ggplot2::aes(x = x, y = y, label = label))
+
+```
+
+Loop through the unique labels and list the points that are within a specified
+distance (10 units).
+
+```{r}
+groups <- label %>% 
+  purrr::map(function(x){
+   links10m %>% 
+      dplyr::filter(.data$from == x) %>% dplyr::pull(.data$to)
+  })
+
+pander::pander(groups)
+
+```
+
+For each of the groups check if any of the points in the group are within any 
+of the other groups. If they are then concatinate the vector with `union`. 
+Filter the unique variables
+
+```{r}
+clusters <- groups %>%
+  purrr::map(function(x){
+    purrr::map(groups, function(y) if(any(unlist(x) %in% unlist(y))) union(x,y)) %>%
+      unlist() %>% unique() %>% stringr::str_sort()
+  }) %>%
+  unique()
+
+pander::pander(clusters)
+```
+
+## Alternative Method 1
+
+Create a graph and perform a depth first search
+
+```{r}
+
+g <- igraph::graph_from_data_frame(links10m, directed = TRUE, vertices = nodes)
+plot(g)
+
+purrr::map(label, function(x){ 
+  ord <- igraph::dfs(g, x, unreachable = FALSE)$order %>% as.numeric()
+  ord <- ord[!is.na(ord)]
+  label[ord] %>% stringr::str_sort()
+}) %>%
+  unique()
+
+```
+
+## Alternative Method 2
+
+Draw a circle with radius equal to distance / 2 and merge overlaping and 
+adjacent shapes.
+
+## Benchmarking 
+
+```{r}
+system.time({
+  label %>% 
+  purrr::map(function(x){
+   links10m %>% 
+      dplyr::filter(.data$from == x) %>% dplyr::pull(.data$to)
+  }) %>%
+    purrr::map(function(x){
+    purrr::map(groups, function(y) if(any(unlist(x) %in% unlist(y))) union(x,y)) %>%
+      unlist() %>% unique() %>% stringr::str_sort()
+  }) %>%
+  unique()
+})
+
+system.time({
+  g <- igraph::graph_from_data_frame(links10m, directed = TRUE, vertices = nodes)
+  purrr::map(label, function(x){ 
+    ord <- igraph::dfs(g, x, unreachable = FALSE)$order %>% as.numeric()
+    ord <- ord[!is.na(ord)]
+    label[ord] %>% stringr::str_sort()
+  }) %>%
+  unique()
+})
+
+```

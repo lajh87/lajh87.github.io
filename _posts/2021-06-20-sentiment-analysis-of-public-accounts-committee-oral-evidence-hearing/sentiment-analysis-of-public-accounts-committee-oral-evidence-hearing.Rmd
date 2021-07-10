@@ -1,11 +1,13 @@
 ---
 title: "Sentiment Analysis of Public Accounts Committee Oral Evidence Hearing"
 description: |
-  A short description of the post.
+  Exploratory analysis to understand the utility of sentiment analysis in 
+  evaluating qualiative information.
 author:
   - name: Luke Heley
     url: https://lajh87.github.io
 date: 06-20-2021
+output: distill::distill_article
 ---
 
 
@@ -142,7 +144,7 @@ highlight_test <- tidy_document$body %>%
   sentimentr::sentiment_by(dialogue, list(question, person)) 
 
 attr(highlight_test, "averaging.function") <- sentimentr::average_downweighted_zero
-sentimentr::highlight(highlight_test,)
+sentimentr::highlight(highlight_test)
 ```
 
 
