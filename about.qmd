@@ -1,0 +1,18 @@
+---
+title: "About"
+image: profile.jpg
+about:
+  template: jolla
+  links:
+    - icon: twitter
+      text: Twitter
+      href: https://lajh87.twitter.com
+    - icon: linkedin
+      text: LinkedIn
+      href: https://linkedin.com/lajh87
+    - icon: github
+      text: Github
+      href: https://github.com/lajh87
+---
+
+About this blog

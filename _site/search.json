@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "posts/ges-competencies/index.html",
+    "href": "posts/ges-competencies/index.html",
+    "title": "GES Competency Framework",
+    "section": "",
+    "text": "url <- \"https://www.gov.uk/government/publications/ges-technical-framework-2022/1-application-of-knowledge\"\nreq <- httr::GET(url)\n\ncontent <- httr::content(req) |>\n  xml2::xml_find_all(\"//div[@class = 'govspeak']//ul\") |>\n  purrr::map(~.x |> xml2::xml_children() |> xml2::xml_text())\n\nlevel <-httr::content(req) |>\n  xml2::xml_find_all(\"//div[@class = 'govspeak']//h3\") |>\n  xml2::xml_text()  |>\n  stringr::str_remove_all(\"\\n\")\n\nheading <- httr::content(req) |>\n  xml2::xml_find_all(\"//div[@class = 'govspeak']//h2\") |>\n  xml2::xml_text() |>\n  stringr::str_remove_all(\"\\n\")\n\nindex <- substr(level, 1, stringr::str_locate(level, \"\\\\.\")[, \"start\"]-1) |>\n  as.numeric()\n\nheading_level <- heading[index]\n\n\ntbl <- purrr::map_df(seq_along(level), {\n  ~dplyr::tibble(\n    heading = heading_level[.x], \n    level = level[.x], \n    content = content[[.x]]\n  )\n}) |>\n  dplyr::mutate(heading_index = as.numeric(substr(heading, 1, stringr::str_locate(heading, \"\\\\s\")[,\"start\"]-2))) |>\n  dplyr::mutate(level_index = as.numeric(substr(level, 3, stringr::str_locate(level, \"\\\\s\")[,\"start\"]-1))) |>\n  dplyr::mutate(heading = substr(heading, stringr::str_locate(heading, \"\\\\s\")+1, nchar(heading))) |>\n  dplyr::mutate(level = substr(level, stringr::str_locate(level, \"\\\\s\")+1, nchar(level))) |>\n  dplyr::mutate(level = stringr::str_remove_all(level, \"\\\\[footnote 1\\\\]\")) |>\n  dplyr::group_by(heading_index, level_index) |>\n  dplyr::mutate(content_index = 1:dplyr::n()) |>\n  dplyr::mutate(index = paste(heading_index, level_index, content_index, sep = \".\")) |>\n  dplyr::ungroup() \n\n\ntbl |>\n  dplyr::select(index, heading, level, content) |>\n  dplyr::mutate(heading = as.factor(heading)) |>\n  dplyr::mutate(level = as.factor(level)) |>\n  DT::datatable(filter = \"top\", rownames = FALSE,\n                extensions = 'RowGroup',\n                options = list(\n                  rowGroup = list(dataSrc = c(1)),\n                  dom = \"ts\", paging = FALSE,\n                  columnDefs = list(list(visible=FALSE, targets=c(1)))),\n                selection = 'none')"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this blog"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "lajh87.github.io",
+    "section": "",
+    "text": "cpd\n\n\nscrape\n\n\neconomics\n\n\nreactable\n\n\n\n\nPost description\n\n\n\n\n\n\nMar 10, 2023\n\n\nLuke Heley\n\n\n\n\n\n\nNo matching items"
+  }
+]
