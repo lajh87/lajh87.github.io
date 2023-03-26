@@ -1,0 +1,224 @@
+---
+title: "Using Wiki Data to Extract Data"
+description: "This post shows how to access the wikipedia knowledge graph"
+author: "Luke Heley"
+date: "26 March 2023"
+categories:
+  - wikipedia
+  - scrape
+editor_options: 
+  chunk_output_type: console
+---
+
+# Objective
+
+Extract the knowledge graph for a Chinese strategic submarine.
+
+# Data
+
+We use the wikidata API to extract the knowledge graph from wiki.
+
+The approach is to search wikidata for the item of interest and select the best match from the list of search results that return.
+
+```{r}
+
+# function to search wiki data and return a tibble of search results
+search_wikidata <- function(search){
+  base <- "https://www.wikidata.org" 
+  path <- "/w/api.php"
+  query <- list(
+    action="query",
+    list="search",
+    format = "json",
+    srsearch = search
+  )
+  
+  httr::GET(base, path = path, query = query) |>
+    httr::content() |>
+    purrr::pluck("query", "search") |>
+    purrr::map_df(~{
+      ul <- unlist(.x)
+      name <- names(ul)
+      value <- as.character(ul)
+      dplyr::tibble(name, value) |>
+        tidyr::pivot_wider()
+      })
+}
+
+(search_results <- search_wikidata("Type-094 submarine"))
+
+# Extract the item title for the item of interest
+root_item_title <- search_results$title[1]
+
+```
+
+We then extract wikidata associated with the item.
+
+```{r}
+# extract the entity data for a chosen item.
+get_entity_data <- function(item = "Q1203377"){
+  base <- "https://www.wikidata.org/"
+  path <- glue::glue("wiki/Special:EntityData/{item}.json")
+  query <- list(flavor = "simple")  
+  req <- httr::GET(base, path = path, query = query)
+  
+  httr::content(req) |>
+    purrr::pluck("entities", item, "claims") |>
+    purrr::map_df(~{
+      value <- unlist(.x)
+      name <- names(value)
+      dplyr::tibble(name, value) |>
+        tidyr::pivot_wider() |>
+        tidyr::unnest()
+      })
+}
+
+entity_data <- get_entity_data(root_item_title)
+
+```
+
+And the associated properties
+
+```{r}
+properties <- entity_data |> 
+  dplyr::pull("mainsnak.property") |>
+  unique()
+
+get_entity_id <- function(id = "P373"){
+  if(length(id)>1) id <- paste(id, collapse = "|")
+  base <- "https://www.wikidata.org/"
+  path <- "w/api.php"
+  query <- list(
+    action="wbgetentities",
+    ids=id,
+    languages="en",
+    props="labels",
+    format="json"
+    )
+  
+  req <- httr::GET(base, path = path, query = query) 
+  
+  if(req$status != 200) 
+    return(stop(glue::glue("Error returned status: {req$status}")))
+  
+  httr::content(req) |>
+    purrr::pluck("entities") |>
+    purrr::map_df(~{
+      value <- unlist(.x)
+      name <- names(value)
+      dplyr::tibble(name, value) |> tidyr::pivot_wider()
+    })
+}
+
+(prop_label <- get_entity_id(properties))
+
+
+
+```
+
+Get the item data
+
+```{r}
+
+entity_data2 <- entity_data |>
+  dplyr::select(
+    mainsnak.property,
+    mainsnak.datavalue.type,
+    mainsnak.datavalue.value.id,
+    mainsnak.datavalue.value,
+    mainsnak.datavalue.value.text,
+    mainsnak.datavalue.value.time
+  ) |>
+  dplyr::mutate(
+    value = dplyr::case_when(
+      !is.na(mainsnak.datavalue.value.id) ~ mainsnak.datavalue.value.id,
+      !is.na(mainsnak.datavalue.value) ~ mainsnak.datavalue.value,
+      !is.na(mainsnak.datavalue.value.time) ~ mainsnak.datavalue.value.time,
+      !is.na(mainsnak.datavalue.value.text) ~ mainsnak.datavalue.value.text
+    )
+  ) |>
+  dplyr::select(property = 1, type = 2, value) |>
+  dplyr::distinct()
+
+entity_data3 <- entity_data2 |>
+  dplyr::left_join(prop_label |>
+  dplyr::select(
+    property = id, 
+    property_label = labels.en.value
+  ))
+
+items <- entity_data3 |>
+  dplyr::filter(type == "wikibase-entityid") |>
+  dplyr::pull(value) |> 
+  unique()
+
+item_labels <- get_entity_id(items)
+
+(item_property <- entity_data3 |>
+  dplyr::left_join(
+    item_labels |>
+      dplyr::select(value = id, item_label = labels.en.value)
+  ) |>
+  dplyr::mutate(item_label = dplyr::case_when(is.na(item_label)~value, 
+                                              TRUE ~ item_label)) |>
+  dplyr::select(property_label, item_label))
+```
+
+Get wiki urls
+
+```{r}
+get_wikisites <- function(item = "Q1203377"){
+  base <- "https://www.wikidata.org/"
+  path <- glue::glue("wiki/Special:EntityData/{item}.json")
+  query <- list(flavor = "simple")  
+  req <- httr::GET(base, path = path, query = query)
+  
+  cont <- httr::content(req) 
+  cont |>
+    purrr::pluck("entities", item, "sitelinks") |>
+    purrr::map_df(~{
+      value <- unlist(.x)
+      name <- names(value)
+      dplyr::tibble(name, value) |>
+        tidyr::pivot_wider()
+      })
+}
+
+(wikiurl <- get_wikisites(root_item_title) |>
+  dplyr::filter(site == "enwiki") |>
+  dplyr::pull(url))
+
+```
+
+Scrape the infobox from the wiki url
+
+```{r}
+
+scrape_infobox <- function(
+    url ="https://en.wikipedia.org/wiki/Type_094_submarine"
+){
+  req <- httr::GET(url)
+  req |> 
+    httr::content() |> 
+    xml2::xml_find_all("//table[@class='infobox']") |>
+    rvest::html_table() 
+}
+
+scrape_infobox("https://en.wikipedia.org/wiki/Type_094_submarine")
+```
+
+Scrape wikitables
+
+```{r}
+scrape_wikitables <- function(
+    url ="https://en.wikipedia.org/wiki/Type_094_submarine"
+){
+  req <- httr::GET(url)
+  req |> 
+    httr::content() |> 
+    xml2::xml_find_all("//table[@class='wikitable']") |>
+    rvest::html_table()
+}
+
+scrape_wikitables("https://en.wikipedia.org/wiki/Type_094_submarine")
+```
