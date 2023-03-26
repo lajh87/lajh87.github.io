@@ -3,6 +3,10 @@ title: "Using Wiki Data to Extract Data"
 description: "This post shows how to access the wikipedia knowledge graph"
 author: "Luke Heley"
 date: "26 March 2023"
+freeze: true
+format:
+  html:
+    toc: true
 categories:
   - wikipedia
   - scrape
