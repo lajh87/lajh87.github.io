@@ -2,10 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://lajh87.github.io/index.html</loc>
-    <lastmod>2023-03-26T19:28:20.564Z</lastmod>
+    <lastmod>2023-04-01T12:10:48.081Z</lastmod>
   </url>
   <url>
     <loc>https://lajh87.github.io/posts/20230326-using-wikidata/using-wikidata.html</loc>
-    <lastmod>2023-03-26T19:28:21.893Z</lastmod>
+    <lastmod>2023-04-01T12:10:49.467Z</lastmod>
+  </url>
+  <url>
+    <loc>https://lajh87.github.io/posts/20230401-wikidata-extract-preceded-by/20230401-extract-preceded-by.html</loc>
+    <lastmod>2023-04-01T12:10:50.585Z</lastmod>
+  </url>
+  <url>
+    <loc>https://lajh87.github.io/posts/20230401-wikidata-type23/20230401-wikidata-type23.html</loc>
+    <lastmod>2023-04-01T12:10:51.610Z</lastmod>
   </url>
 </urlset>
