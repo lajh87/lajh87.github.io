@@ -1,0 +1,16 @@
+{
+  "hash": "e71925ee5ca0ff4732aaaf19b2a708ee",
+  "result": {
+    "markdown": "---\ntitle: \"Extract Type 23 Data\"\ndescription: \"Extract Type 23 Performance Data\"\nauthor: \"Defence Economist\"\ndate: \"01 April 2023\"\nfreeze: true\nformat:\n  html:\n    toc: true\ncategories:\n - wikipedia\n - scrape\neditor_options:\n  chunk_output_type: console\n---\n\n\n# Objective\n\nExtract Type 23 performance data from wikipedia\n\n# Data\n\n\n::: {.cell}\n\n```{.r .cell-code}\nurl <- \"https://en.wikipedia.org/wiki/Type_23_frigate\"\nreq <- httr::GET(url) |>\n  httr::content()\n\nvars <- c(\"Name\", \"Displacement\", \"Length\", \"Beam\", \"Draught\")\n(df <- req |>\n  xml2::xml_find_all(\"//table[@class = 'infobox']\") |>\n  rvest::html_table() |>\n  purrr::pluck(1) |>\n  dplyr::filter(X1 %in% c(vars)) |>\n  t() |> dplyr::as_tibble(.name_repair = \"minimal\") |>\n  janitor::row_to_names(1) |>\n  dplyr::mutate(dplyr::across(-1, ~stringr::str_sub(.x, 1, stringr::str_locate(.x, \"\\\\(\")[,1]-2))) |>\n  tidyr::pivot_longer(-1) |>\n  dplyr::rename(id = Name) |>\n  dplyr::mutate(unit = substr(value, stringr::str_locate(value, \"\\\\s\")[,1]+1, nchar(value))) |>\n  dplyr::mutate(value = stringr::str_remove_all(value, \"[a-z]|,\")) |>\n  dplyr::mutate(value = stringr::str_trim(value)) |>\n  dplyr::mutate(value = as.numeric(value))\n)\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n# A tibble: 4 × 4\n  id              name          value unit \n  <chr>           <chr>         <dbl> <chr>\n1 Type 23 frigate Displacement 4900   t    \n2 Type 23 frigate Length        133   m    \n3 Type 23 frigate Beam           16.1 m    \n4 Type 23 frigate Draught         7.3 m    \n```\n:::\n\n```{.r .cell-code}\ndf |> dplyr::select(-unit) |> tidyr::pivot_wider()\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n# A tibble: 1 × 5\n  id              Displacement Length  Beam Draught\n  <chr>                  <dbl>  <dbl> <dbl>   <dbl>\n1 Type 23 frigate         4900    133  16.1     7.3\n```\n:::\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nlibrary(GGally)\n```\n\n::: {.cell-output .cell-output-stderr}\n```\nWarning: package 'GGally' was built under R version 4.2.3\n```\n:::\n\n::: {.cell-output .cell-output-stderr}\n```\nLoading required package: ggplot2\n```\n:::\n\n::: {.cell-output .cell-output-stderr}\n```\nRegistered S3 method overwritten by 'GGally':\n  method from   \n  +.gg   ggplot2\n```\n:::\n\n```{.r .cell-code}\n# From the help page:\ndata(flea)\nggpairs(flea, columns = 2:4, ggplot2::aes(colour=species)) \n```\n\n::: {.cell-output-display}\n![](20230401-wikidata-type23_files/figure-html/unnamed-chunk-2-1.png){width=672}\n:::\n:::\n",
+    "supporting": [
+      "20230401-wikidata-type23_files"
+    ],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

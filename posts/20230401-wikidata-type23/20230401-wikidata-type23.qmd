@@ -1,0 +1,56 @@
+---
+title: "Extract Type 23 Data"
+description: "Extract Type 23 Performance Data"
+author: "Defence Economist"
+date: "01 April 2023"
+freeze: true
+format:
+  html:
+    toc: true
+categories:
+ - wikipedia
+ - scrape
+editor_options:
+  chunk_output_type: console
+---
+
+# Objective
+
+Extract Type 23 performance data from wikipedia
+
+# Data
+
+```{r}
+url <- "https://en.wikipedia.org/wiki/Type_23_frigate"
+req <- httr::GET(url) |>
+  httr::content()
+
+vars <- c("Name", "Displacement", "Length", "Beam", "Draught")
+(df <- req |>
+  xml2::xml_find_all("//table[@class = 'infobox']") |>
+  rvest::html_table() |>
+  purrr::pluck(1) |>
+  dplyr::filter(X1 %in% c(vars)) |>
+  t() |> dplyr::as_tibble(.name_repair = "minimal") |>
+  janitor::row_to_names(1) |>
+  dplyr::mutate(dplyr::across(-1, ~stringr::str_sub(.x, 1, stringr::str_locate(.x, "\\(")[,1]-2))) |>
+  tidyr::pivot_longer(-1) |>
+  dplyr::rename(id = Name) |>
+  dplyr::mutate(unit = substr(value, stringr::str_locate(value, "\\s")[,1]+1, nchar(value))) |>
+  dplyr::mutate(value = stringr::str_remove_all(value, "[a-z]|,")) |>
+  dplyr::mutate(value = stringr::str_trim(value)) |>
+  dplyr::mutate(value = as.numeric(value))
+)
+
+df |> dplyr::select(-unit) |> tidyr::pivot_wider()
+```
+
+```{r}
+
+library(GGally)
+ 
+# From the help page:
+data(flea)
+ggpairs(flea, columns = 2:4, ggplot2::aes(colour=species)) 
+```
+

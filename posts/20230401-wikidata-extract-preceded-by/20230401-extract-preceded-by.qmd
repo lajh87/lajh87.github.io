@@ -1,0 +1,74 @@
+---
+title: "Extract of UK Frigates and Their Precendents"
+description: "This post shows how to access the wikipedia knowledge graph"
+author: "Luke Heley"
+date: "26 March 2023"
+freeze: true
+format:
+  html:
+    toc: true
+categories:
+ - wikipedia
+ - scrape
+editor_options:
+  chunk_output_type: console
+---
+
+# Objective
+
+Extract list of UK Frigates and their precedents.
+
+# Data
+
+We use wikidata to first extract the different types of warship
+
+```{r}
+q <- '
+SELECT ?ship_type ?ship_typeLabel WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  ?ship_type wdt:P31 wd:Q2235308;
+    wdt:P279 wd:Q3114762.
+  
+  OPTIONAL {  }
+}
+  '
+
+WikidataQueryServiceR::query_wikidata(q)
+  
+```
+
+And subsequently different types of frigates operated by the Royal Navy
+
+```{r}
+q <- '
+SELECT ?ship_class ?ship_classLabel ?service_entry ?followed_by ?followed_byLabel ?operator ?operatorLabel ?image ?service_retirement ?follows ?followsLabel ?service_entryLabel ?service_retirementLabel ?imageLabel WHERE {
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }
+  ?ship_class wdt:P31 wd:Q559026; # instance of ship class
+    wdt:P279 wd:Q106070703. # subclass of frigate
+  ?ship_class wdt:P137 wd:Q172771. # operated by RN
+  OPTIONAL { ?ship_class wdt:P729 ?service_entry. }
+  OPTIONAL { ?ship_class wdt:P730 ?service_retirement. }
+  OPTIONAL { ?ship_class wdt:P155 ?follows. }
+  OPTIONAL { ?ship_class wdt:P156 ?followed_by. }
+  OPTIONAL { ?ship_class wdt:P137 ?operator. }
+  OPTIONAL { ?ship_class wdt:P18 ?image. }
+}
+'
+rn_frigates <- WikidataQueryServiceR::query_wikidata(q)
+```
+
+```{r}
+rn_frigates |>
+  dplyr::filter(operatorLabel == "Royal Navy") |>
+  dplyr::select(from = ship_classLabel, 
+                to = followed_byLabel, 
+                value = service_entry) |>
+  dplyr::distinct() |>
+  dplyr::filter(!is.na(to)) |>
+  igraph::graph_from_data_frame() |>
+  visNetwork::visIgraph()
+```
+
+Next step. Extract data on type 26, type 23, type 22, type 21, leander class, rothesay-class, valour-class, whiteby-class and saisbury class.
+
+Future intention is to compare to other nations where data are available.

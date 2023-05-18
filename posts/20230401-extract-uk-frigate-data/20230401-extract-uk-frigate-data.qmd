@@ -1,0 +1,163 @@
+---
+title: "Extract UK Frigate Data"
+description: "Search and extract UK Frigate Data"
+author: "Defence Economist"
+date: "01 April 2023"
+freeze: true
+format:
+  html:
+    toc: true
+categories:
+  - wikipedia
+editor_options:
+  chunk_output_type: console
+---
+
+# Objective
+
+Search for wikidata for different UK Frigates
+
+# Data
+
+type 26, type 23, type 22, type 21, leander class, rothesay-class, valour-class, Whitby class and Sailsbury class
+
+```{r}
+frigates <- c(
+  "Type 26", "Type 23", "Type 22", 
+  "Type 21", "Leander Class", "Rothesay Class", 
+   "Whitby Class", "Salisbury Class"
+  ) |>
+  paste("Frigate")
+
+base <- "https://www.wikidata.org" 
+path <- "/w/api.php"
+query <- list(
+  action="query",
+  list="search",
+  format = "json"
+)
+
+search_results <- frigates |>
+  purrr::map(~{
+    query$srsearch = .x
+    httr::GET(base, path = path, query = query) |>
+      httr::content()
+  })
+
+
+search_results_tidy <- search_results |>
+  purrr::map_df(~{
+     .x$query$search[1]; # extract first response
+    } ) |>
+  dplyr::select(title, snippet) |>
+  dplyr::mutate(search = frigates) |>
+  dplyr::relocate(search)
+
+```
+
+get wiki url
+
+```{r}
+base <- "https://www.wikidata.org/"
+req <- search_results_tidy$title |>
+  purrr::map(~{
+    path <- glue::glue("wiki/Special:EntityData/{.x}.json")
+    httr::GET(url = base, path = path, query = list(flavor = "simple"))
+  })
+
+(wiki_url <- req |>
+  purrr::map_chr(~{
+    cnt <- httr::content(.x)
+    cnt$entities[[1]]$sitelinks$enwiki$url
+  }))
+
+```
+
+```{r}
+infobox <- wiki_url |>
+  purrr::map_df(~{
+    httr::GET(.x) |>
+      httr::content() |>
+      xml2::xml_find_all("//table[@class='infobox']") |>
+      rvest::html_table() |>
+      purrr::pluck(1) |>
+      dplyr::mutate(source = .x)
+  })
+
+vars <- c("Displacement", "Length", "Beam", "Draught")
+
+performance <- infobox |>
+  dplyr::group_by(source) |>
+  dplyr::mutate(X0 = ifelse(X1 == X2, X1, NA)) |>
+  tidyr::fill(X0) |>
+  dplyr::filter(X1 != X2) |>
+  dplyr::filter(X1 %in% vars) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(key = 1L:dplyr::n()) |>
+  dplyr::group_by(source) |>
+  dplyr::mutate(X2 = stringr::str_split(X2, "\n")) |>
+  tidyr::unnest(cols = "X2") |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    X3 = ifelse(
+      test = stringr::str_detect(X2, "^[0-9]", negate = TRUE), 
+      yes = substr(X2, 1, stringr::str_locate(X2, ":")[,1]-1),
+      no = NA)
+  ) |>
+   dplyr::mutate(
+    X2 = ifelse(
+      test = stringr::str_detect(X2, "^[0-9]", negate = TRUE), 
+      yes = substr(X2, stringr::str_locate(X2, ":")[,1]+2, nchar(X2)),
+      no = X2)
+  )  |>
+  dplyr::mutate(
+    value = as.numeric(stringr::str_remove_all(substr(X2, 1, stringr::str_locate(X2, "\\s")[,1]-1), ","))
+  ) |>
+  dplyr::mutate(
+    units = substr(X2, stringr::str_locate(X2, "\\s")[,1]+1, nchar(X2))
+  ) |>
+  dplyr::mutate(
+    units = substr(units, 1, stringr::str_locate(units, "\\s")[,1]-1)
+  ) |> 
+  dplyr::mutate(
+    label = stringr::str_remove_all(source, "https://en.wikipedia.org/wiki/") |>
+      stringr::str_replace_all("_", " ")
+    ) |>
+  dplyr::filter(!is.na(value)) |>
+  dplyr::group_by(key) |>
+  dplyr::mutate(increment = 1:dplyr::n()) |>
+  dplyr::select(key, increment, label, name = X1, value, units) |>
+  dplyr::mutate(units = dplyr::case_when(
+    units %in% c("tonnes", "ton", "tonnes,", "tons") ~ "t",
+    units %in% c("long") ~ "lt",
+    units %in% c("metres") ~ "m",
+    TRUE ~ units
+  )) |>
+  dplyr::mutate(
+    value = dplyr::case_when(
+      units %in% "lt" ~ (value * 1.016047), 
+      units %in% "ft" ~ (value * 0.3048),
+      TRUE ~ value
+    )
+  ) |>
+  dplyr::mutate(
+    units = dplyr::case_when(
+       units %in% "lt" ~ "t",
+       units %in% "ft" ~ "m",
+       TRUE ~ units
+    )
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::select(-units, -key, -increment) |> 
+  dplyr::group_by(label, name) |>
+  dplyr::mutate(increment = 1:dplyr::n()) |>
+  tidyr::pivot_wider(names_from = name, values_from = value) |>
+  tidyr::fill(c(Length, Beam, Draught)) 
+
+x <- GGally::ggpairs(performance, lower= list(mapping = ggplot2::aes(colour = label)), columns = 3:6) 
+
+plotly::ggplotly(x)
+  
+  
+```
+
