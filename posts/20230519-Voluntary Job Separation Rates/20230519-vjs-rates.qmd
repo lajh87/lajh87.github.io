@@ -11,7 +11,8 @@ format:
     toc: true
     code-fold: true
 categories:
- - NLP
+ - Labour Markets
+ - Labour Force Survey
 editor_options:
   chunk_output_type: console
 ---
@@ -21,7 +22,6 @@ library(ggplot2)
 
 # This script calculates voluntary and involuntary job separations from the 
 # labour market. 
-
 
 #+ Setup ----
 
@@ -164,9 +164,11 @@ vjs_sector$vjs_rate[vjs_sector$vjs_rate == 0] <- NA
 
 
 ggplot(vjs_total) + 
+  geom_smooth(aes(sitdate, vjs_rate)) +
   geom_line(aes(sitdate, vjs_rate))
 
 ggplot(vjs_sector) +
+  geom_smooth(aes(sitdate, vjs_rate)) +
   geom_line(aes(sitdate, vjs_rate)) +
   facet_wrap(~sector)
 
