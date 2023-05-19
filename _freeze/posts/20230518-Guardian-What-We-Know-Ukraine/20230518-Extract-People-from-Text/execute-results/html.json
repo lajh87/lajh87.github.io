@@ -1,0 +1,14 @@
+{
+  "hash": "1782c25904980b364285d86b6040363e",
+  "result": {
+    "markdown": "---\ntitle: \"Natural Language Processing\"\ndescription: \"Extract people from Guardian reporting on what we know on Ukraine.\"\nauthor: \"Luke Heley\"\ndate: \"18 May 2023\"\nfreeze: true\nexecute:\n  eval: false\nformat:\n  html:\n    toc: true\n    code-fold: true\ncategories:\n - NLP\neditor_options:\n  chunk_output_type: console\n---\n\n::: {.cell}\n\n```{.r .cell-code}\ndf <- readr::read_csv(\"2023-05-18-guardian-ukraine-what-we-know.csv\",\n                      col_types = readr::cols())\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\npeople <- purrr::map(df$fields.body,~{\n  text <- .x |>\n    xml2::read_html() |>\n    xml2::xml_find_all(\"//p\") |>\n    xml2::xml_text()\n    \n  s <- NLP::String(paste(text, collapse = \"\\n\"))\n\n  ## Need sentence and word token annotations.\n  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()\n  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()\n  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))\n\n## Entity recognition for persons.\n  entity_annotator <- openNLP::Maxent_Entity_Annotator()\n\n  s[entity_annotator(s, a2)]\n})\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\norg <- purrr::map(df$fields.body,~{\n  text <- .x |>\n    xml2::read_html() |>\n    xml2::xml_find_all(\"//p\") |>\n    xml2::xml_text()\n    \n  s <- NLP::String(paste(text, collapse = \"\\n\"))\n\n  ## Need sentence and word token annotations.\n  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()\n  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()\n  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))\n\n## Entity recognition for persons.\n  entity_annotator <- openNLP::Maxent_Entity_Annotator(kind = \"organization\")\n\n  s[entity_annotator(s, a2)]\n}, .progress = TRUE)\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nloc <- purrr::map(df$fields.body,~{\n  text <- .x |>\n    xml2::read_html() |>\n    xml2::xml_find_all(\"//p\") |>\n    xml2::xml_text()\n    \n  s <- NLP::String(paste(text, collapse = \"\\n\"))\n\n  ## Need sentence and word token annotations.\n  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()\n  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()\n  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))\n\n## Entity recognition for persons.\n  entity_annotator <- openNLP::Maxent_Entity_Annotator(kind = \"location\")\n\n  s[entity_annotator(s, a2)]\n}, .progress = TRUE)\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

@@ -7,6 +7,7 @@ freeze: true
 format:
   html:
     toc: true
+    code-fold: true
 categories:
  - api
  - NLP
@@ -83,7 +84,6 @@ pages |>
   dplyr::mutate(fields.headline = stringr::str_trim(fields.headline)) |>
   dplyr::mutate(day = stringr::str_extract(fields.headline, "day [0-9]{1,3}")) |> 
   dplyr::mutate(day = stringr::str_remove_all(day, "day ") |> as.numeric()) |>
-  dplyr::mutate(webPublicationDate = strptime(webPublicationDate, format = "%Y-%m-%dT%H:%M:%SZ")) |>
   dplyr::select(webPublicationDate, day,fields.trailText) |>
   reactable::reactable(
     details = function(index){

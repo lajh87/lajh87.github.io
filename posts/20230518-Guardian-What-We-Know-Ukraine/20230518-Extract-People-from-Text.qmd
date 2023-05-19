@@ -1,0 +1,86 @@
+---
+title: "Natural Language Processing"
+description: "Extract people from Guardian reporting on what we know on Ukraine."
+author: "Luke Heley"
+date: "18 May 2023"
+freeze: true
+execute:
+  eval: false
+format:
+  html:
+    toc: true
+    code-fold: true
+categories:
+ - NLP
+editor_options:
+  chunk_output_type: console
+---
+
+```{r}
+df <- readr::read_csv("2023-05-18-guardian-ukraine-what-we-know.csv",
+                      col_types = readr::cols())
+```
+
+```{r}
+people <- purrr::map(df$fields.body,~{
+  text <- .x |>
+    xml2::read_html() |>
+    xml2::xml_find_all("//p") |>
+    xml2::xml_text()
+    
+  s <- NLP::String(paste(text, collapse = "\n"))
+
+  ## Need sentence and word token annotations.
+  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()
+  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()
+  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))
+
+## Entity recognition for persons.
+  entity_annotator <- openNLP::Maxent_Entity_Annotator()
+
+  s[entity_annotator(s, a2)]
+})
+
+```
+
+```{r}
+org <- purrr::map(df$fields.body,~{
+  text <- .x |>
+    xml2::read_html() |>
+    xml2::xml_find_all("//p") |>
+    xml2::xml_text()
+    
+  s <- NLP::String(paste(text, collapse = "\n"))
+
+  ## Need sentence and word token annotations.
+  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()
+  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()
+  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))
+
+## Entity recognition for persons.
+  entity_annotator <- openNLP::Maxent_Entity_Annotator(kind = "organization")
+
+  s[entity_annotator(s, a2)]
+}, .progress = TRUE)
+```
+
+```{r}
+loc <- purrr::map(df$fields.body,~{
+  text <- .x |>
+    xml2::read_html() |>
+    xml2::xml_find_all("//p") |>
+    xml2::xml_text()
+    
+  s <- NLP::String(paste(text, collapse = "\n"))
+
+  ## Need sentence and word token annotations.
+  sent_token_annotator <- openNLP::Maxent_Sent_Token_Annotator()
+  word_token_annotator <- openNLP::Maxent_Word_Token_Annotator()
+  a2 <- NLP::annotate(s, list(sent_token_annotator, word_token_annotator))
+
+## Entity recognition for persons.
+  entity_annotator <- openNLP::Maxent_Entity_Annotator(kind = "location")
+
+  s[entity_annotator(s, a2)]
+}, .progress = TRUE)
+```
