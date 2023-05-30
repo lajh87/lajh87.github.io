@@ -1,0 +1,72 @@
+---
+title: "Summarise Information in a Book"
+description: "Summarise the Top 5 Setences by Section in Homo Deus"
+author: "Luke Heley"
+date: "30 May 2023"
+freeze: true
+execute:
+  eval: true
+format:
+  html:
+    toc: true
+    code-fold: true
+categories:
+ - NLP
+editor_options:
+  chunk_output_type: console
+---
+
+# Load the Raw Data using PDFTOOLS
+
+```{r}
+raw <- pdftools::pdf_text("homo_deus_chapter_1.pdf")
+
+```
+
+# Extract the Manuscript
+
+```{r}
+manuscript <- paste(raw, collapse = "")
+```
+
+# Split the manuscript into section heading and text.
+
+```{r}
+section_text <- dplyr::tibble(manuscript) |> 
+  dplyr::mutate(section = stringr::str_split(manuscript, "\n\n\n")) |> 
+  tidyr::unnest(cols = "section") |> 
+  dplyr::select(-manuscript) |> 
+  dplyr::filter(!stringr::str_detect(section, "\n\n")) |> 
+  dplyr::slice(3:dplyr::n()) |> 
+  dplyr::mutate(section = stringr::str_trim(section)) |> 
+  tidyr::separate(section, c("section", "text"), "\n", extra = "merge") |> 
+  dplyr::mutate(section_id = 1:dplyr::n())
+
+```
+
+# Lexrankr
+
+https://github.com/AdamSpannbauer/lexRankr
+
+```{r}
+lex_top_3 <- seq_along(section_text$text) |> 
+  purrr::map_df(~{
+    lexRankr::lexRank(
+      section_text$text[[.x]],
+      docId = .x, 
+      n = 5, 
+      continuous = TRUE, 
+      Verbose = FALSE
+    ) }) |> 
+  tibble::as_tibble() |> 
+  dplyr::mutate(docId = as.numeric(docId))
+
+```
+
+# Results
+
+```{r}
+dplyr::left_join(section_text, lex_top_3, by = c("section_id" = "docId")) |> 
+  dplyr::select(section_id, section, sentenceId, sentence, value) |> 
+  DT::datatable(options = list(pageLength = 5))
+```
