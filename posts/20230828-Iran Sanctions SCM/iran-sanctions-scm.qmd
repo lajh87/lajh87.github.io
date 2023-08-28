@@ -1,0 +1,187 @@
+---
+title: "Synthetic Control Methods"
+description: "Notes on Synthetic Control"
+author: "Luke Heley"
+date: "29 Aug 2023"
+freeze: true
+execute:
+  eval: true
+format:
+  html:
+    toc: true
+    code-fold: true
+categories:
+ - evaluation
+ - synthetic-control
+ - methods
+ - notes
+editor_options:
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+```{r, warning = FALSE}
+library(tidysynth)
+library(wbstats)
+```
+
+## Data and Method
+
+Data Source: World Bank Development Indicators
+
+Time Period: 2003 - 2015
+
+Countries: Algeria, Angola, Bahrain, Ecuador, Egypt, Iran, Israel, Jordan, Lebanon, Morocco, Nigeria, Oman, and Saudi Arabia.
+
+Outcome Variable: military expenditure (current US\$) per capita.
+
+Control Variables: total population, imports of goods and services (constant US\$), GDP per capita (constant US\$) and real GDP per capita growth rate.
+
+Special Variables: military spending per capita in years 2010, 2008, 2006 and 2004
+
+### Data
+
+```{r}
+# Load Data from World Bank
+wb_countries <- wb_countries("en")
+countries <- c(
+  "Bahrain", "Ecuador", "Egypt, Arab Rep.", 
+  "Iran, Islamic Rep.", "Israel", "Jordan", 
+  "Lebanon", "Morocco", "Nigeria", 
+  "Oman",  "Saudi Arabia"
+  )
+
+country_iso2c <- wb_countries |>
+  dplyr::filter(country %in% countries) |>
+  dplyr::pull(iso2c)
+
+ind <- wb_indicators("en", include_archive = FALSE)
+vars <- c(
+  "MS.MIL.XPND.CD","SP.POP.TOTL", 
+  "NE.IMP.GNFS.KD", "NY.GDP.PCAP.KD", 
+  "NY.GDP.PCAP.KD.ZG", "BM.GSR.GNFS.CD"
+  )
+
+ind |>
+  dplyr::filter(indicator_id %in% vars)
+
+df <- wb_data(indicator = vars, country = country_iso2c, start_date = 2002, end_date = 2015)
+
+# Check all variables and countries are in the data frame.
+all(vars %in% names(df)) & all(country_iso2c %in% unique(df$iso2c))
+
+# Process Data
+sanctions <- df |>
+  dplyr::mutate(
+    milspend_pc =MS.MIL.XPND.CD/SP.POP.TOTL,
+    realgdpgrowth_pc = NY.GDP.PCAP.KD/dplyr::lag(NY.GDP.PCAP.KD,1)-1,
+    country_id = match(iso2c, country_iso2c),
+    imports = ifelse(is.na(NE.IMP.GNFS.KD), BM.GSR.GNFS.CD,NE.IMP.GNFS.KD), ## TODO convert to constant prices.
+    ) |>
+  dplyr::select(
+    country_id, 
+    country, 
+    year = date, 
+    milspend_pc, 
+    pop = SP.POP.TOTL, 
+    imports,
+    realgdp_pc = NY.GDP.PCAP.KD,
+    realgdpgrowth_pc
+    ) |>
+  dplyr::filter(year>=2003) 
+
+
+```
+
+```{r include=FALSE}
+fn = 'sanctions.csv'
+rmarkdown::output_metadata$set(rsc_output_files = list(fn))
+write.csv(sanctions,file=fn)
+```
+[`r fn`](`r fn`)
+
+### Method
+
+```{r}
+sanctions_out <- sanctions %>%
+  synthetic_control(outcome = milspend_pc, 
+                    unit = country, 
+                    time = year, 
+                    i_unit = "Iran, Islamic Rep.", 
+                    i_time = 2011, 
+                    generate_placebos=T 
+                    ) %>%
+  generate_predictor(time_window = 2003:2011,
+                     pop = mean(pop),
+                     imports = mean(imports),
+                     realgdp_pc = mean(realgdp_pc),
+                     realgdpgrowth_pc = mean(realgdpgrowth_pc)) %>%
+  generate_predictor(time_window = 2010,
+                     milspend_2010 = milspend_pc) %>%
+  generate_predictor(time_window = 2008,
+                     milspend_2008 = milspend_pc) %>%
+  generate_predictor(time_window = 2006,
+                     milspend_2006 = milspend_pc) %>%
+  generate_predictor(time_window = 2004,
+                     milspend_2004 = milspend_pc) %>%
+  generate_weights(optimization_window = 2003:2011, 
+                   margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 
+  ) %>%
+  generate_control()
+```
+
+
+Once the synthetic control is generated, one can easily assess the fit by comparing the trends of the synthetic and observed time series. The idea is that the trends in the pre-intervention period should map closely onto one another.
+
+
+```{r}
+sanctions_out %>% plot_trends()
+```
+
+To capture the causal quantity (i.e. the difference between the observed and counterfactual), one can plot the differences using plot_differences()
+
+```{r}
+sanctions_out %>% plot_differences()
+```
+
+In addition, one can easily examine the weighting of the units and variables in the fit. This allows one to see which cases were used, in part, to generate the synthetic control.
+
+```{r}
+sanctions_out %>% plot_weights()
+```
+
+Another useful way of evaluating the synthetic control is to look at how comparable the synthetic control is to the observed covariates of the treated unit.
+
+```{r}
+sanctions_out %>% grab_balance_table()
+```
+
+## Inference
+
+For inference, the method relies on repeating the method for every donor in the donor pool exactly as was done for the treated unit — i.e. generating placebo synthetic controls). By setting generate_placebos = TRUE when initializing the synth pipeline with synthetic_control(), placebo cases are automatically generated when constructing the synthetic control of interest. This makes it easy to explore how unique difference between the observed and synthetic unit is when compared to the placebos.
+
+```{r}
+sanctions_out %>% plot_placebos()
+```
+
+Note that the plot_placebos() function automatically prunes any placebos that poorly fit the data in the pre-intervention period. The reason for doing so is purely visual: those units tend to throw off the scale when plotting the placebos. To prune, the function looks at the pre-intervention period mean squared prediction error (MSPE) (i.e. a metric that reflects how well the synthetic control maps to the observed outcome time series in pre-intervention period). If a placebo control has a MSPE that is two times beyond the target case (e.g. “California”), then it’s dropped. To turn off this behavior, set prune = FALSE.
+
+```{r}
+sanctions_out %>% plot_placebos(prune = FALSE)
+```
+
+Finally, Adabie et al. 2010 outline a way of constructing Fisher’s Exact P-values by dividing the post-intervention MSPE by the pre-intervention MSPE and then ranking all the cases by this ratio in descending order. A p-value is then constructed by taking the rank/total.1 The idea is that if the synthetic control fits the observed time series well (low MSPE in the pre-period) and diverges in the post-period (high MSPE in the post-period) then there is a meaningful effect due to the intervention. If the intervention had no effect, then the post-period and pre-period should continue to map onto one another fairly well, yielding a ratio close to 1. If the placebo units fit the data similarly, then we can’t reject the hull hypothesis that there is no effect brought about by the intervention.
+
+This ratio can be easily plotted using plot_mspe_ratio(), offering insight into the rarity of the case where the intervention actually occurred.
+
+```{r}
+sanctions_out %>% plot_mspe_ratio()
+
+```
+
+For more specific information, there is a significance table that can be extracted with one of the many grab_ prefix functions.
+
+```{r}
+sanctions_out %>% grab_significance()
+```
+
