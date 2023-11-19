@@ -1,6 +1,6 @@
 ---
-title: "Synthetic Control Methods"
-description: "Notes on Synthetic Control"
+title: "Iran Sanctions - Sythetic Control"
+description: "An applied example of synthetic control"
 author: "Luke Heley"
 date: "29 Aug 2023"
 freeze: true
