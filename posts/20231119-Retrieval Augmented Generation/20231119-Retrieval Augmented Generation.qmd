@@ -1,0 +1,71 @@
+---
+title: "Retrieval Augmented Generation"
+description: "An applied example using llama index"
+author: "Luke Heley"
+date: "19 Nov 23"
+freeze: true
+execute:
+  eval: true
+format:
+  html:
+    toc: true
+    code-fold: show
+categories:
+ - large language models (LLM)
+ - evidence synthesis
+ - methods
+ - notes
+editor_options:
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+# Introduction
+
+This examples shows how to load data from a pdf, create emeddings, and then query the data.
+
+# Load PDF
+
+We load the major projects report 2015 into python using (`smart_pdf_loader`)\[https://llamahub.ai/l/smart_pdf_loader\].
+
+> SmartPDFLoader is a super fast PDF reader that understands the layout structure of PDFs such as nested sections, nested lists, paragraphs and tables. It uses layout information to smartly chunk PDFs into optimal short contexts for LLMs.
+
+```{python}
+from llama_hub.smart_pdf_loader import SmartPDFLoader
+
+llmsherpa_api_url = "https://readers.llmsherpa.com/api/document/developer/parseDocument?renderFormat=all"
+pdf_url = "https://www.nao.org.uk/wp-content/uploads/2015/10/Major-Projects-Report-2015-and-the-Equipment-Plan-2015-2025.pdf" # also allowed is a file path e.g. /home/downloads/xyz.pdf
+
+pdf_loader = SmartPDFLoader(llmsherpa_api_url=llmsherpa_api_url)
+documents = pdf_loader.load_data(pdf_url)
+documents[0:2] # look at first 3 chunks 
+
+```
+
+# Create a Vector Store Index
+
+The documentation on [VectorStoreIndex](https://gpt-index.readthedocs.io/en/v0.6.8/reference/indices/vector_store.html) feels a little light. My understanding (not least through reference to OpenAI billing) is that this step uses OpenAI `ada` model for embeddings and then stores the index.
+
+```{python}
+from llama_index import VectorStoreIndex
+index = VectorStoreIndex.from_documents(documents)
+index
+```
+
+# Query
+
+We then use GPT 3.5 is used to query the data.
+
+```{python}
+query_engine = index.as_query_engine()
+response = query_engine.query("Summarise this document.")
+print(response)
+response = query_engine.query("what are the main causes of schedule variation?")
+print(response)
+
+```
+
+# Next Steps
+
+1.  Being able to search over multiple documents
+2.  Being able to cite sources.
