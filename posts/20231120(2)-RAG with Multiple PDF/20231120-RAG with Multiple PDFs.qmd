@@ -1,6 +1,6 @@
 ---
-title: "Retrieval Augmented Generation"
-description: "An applied example using pinecone and langchain"
+title: "Retrieval Augmented Generation with Multiple PDF"
+description: "An applied example using llama hub"
 author: "Luke Heley"
 date: "19 Nov 23"
 freeze: true
