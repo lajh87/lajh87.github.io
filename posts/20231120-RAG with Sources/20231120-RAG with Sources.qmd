@@ -19,7 +19,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-
 # Introduction
 
 https://python.langchain.com/docs/use_cases/question_answering/
@@ -44,7 +43,7 @@ for url in urls:
 
 ```
 
-# Chunk 
+# Chunk
 
 ```{python}
 # Split

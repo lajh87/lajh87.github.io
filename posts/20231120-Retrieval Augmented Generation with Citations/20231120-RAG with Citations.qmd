@@ -213,7 +213,6 @@ qa.run(query)
 
 ```
 
-
 ```{python}
 from langchain.chains import RetrievalQAWithSourcesChain
 

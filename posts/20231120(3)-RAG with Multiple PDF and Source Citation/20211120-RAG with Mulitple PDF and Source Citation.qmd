@@ -19,7 +19,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-
 # Introduction
 
 https://python.langchain.com/docs/use_cases/question_answering/
@@ -32,19 +31,24 @@ import os
 import sys
 
 from langchain.document_loaders import PyPDFLoader
+f = open("sources.txt", "r")
+urls = f.readlines()
+f.close()
 
-pdf_url = "https://www.nao.org.uk/wp-content/uploads/2015/10/Major-Projects-Report-2015-and-the-Equipment-Plan-2015-2025.pdf" # also allowed is a file path e.g. /home/downloads/xyz.pdf
-url2 = "https://www.nao.org.uk/wp-content/uploads/2010/10/1011489_I.pdf"
-urls = [url2, pdf_url]
+newurls = []
+for url in urls:
+  newurls.append(url.replace("\n", ""))
 
+urls = newurls
 documents = []
 for url in urls:
-        documents.extend(PyPDFLoader(url).load())
-
+  print(url)
+  documents.extend(PyPDFLoader(url).load())
+#
 
 ```
 
-# Chunk 
+# Chunk
 
 ```{python}
 # Split
@@ -80,14 +84,12 @@ print(vectorstore._collection.count())
 # Retrieve
 
 ```{python}
-retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 10})
 retrieved_docs = retriever.get_relevant_documents(
-    "What are the causes of schedule variation?"
+    "What are the main causes of schedule variation?"
 )
 
 len(retrieved_docs)
-print(retrieved_docs[0].page_content)
-
 ```
 
 # Generate
@@ -126,7 +128,6 @@ from langchain.prompts import PromptTemplate
 
 template = """Use the following pieces of context to answer the question at the end. 
 If you don't know the answer, just say that you don't know, don't try to make up an answer. 
-Use three sentences maximum and keep the answer as concise as possible. 
 Always say "thanks for asking!" at the end of the answer. 
 {context}
 Question: {question}
