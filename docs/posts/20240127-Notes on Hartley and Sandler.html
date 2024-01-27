@@ -7,10 +7,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Luke Heley">
-<meta name="dcterms.date" content="2023-11-19">
-<meta name="description" content="An applied example using llama index">
+<meta name="dcterms.date" content="2023-12-27">
+<meta name="description" content="Notes on Chapter 7 Procurement, Theories and Evidence from Sandler and Hartley’s economics of defence">
 
-<title>The Defence Economist - Retrieval Augmented Generation</title>
+<title>The Defence Economist - Notes on Economics of Defence - Chapter 7 (Procurement)</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,59 +23,25 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
-<script src="../../site_libs/clipboard/clipboard.min.js"></script>
-<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="../../site_libs/quarto-search/fuse.min.js"></script>
-<script src="../../site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="../../">
-<script src="../../site_libs/quarto-html/quarto.js"></script>
-<script src="../../site_libs/quarto-html/popper.min.js"></script>
-<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="../../site_libs/quarto-html/anchor.min.js"></script>
-<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -98,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 
 
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="../styles.css">
 </head>
 
 <body class="nav-fixed">
@@ -108,7 +74,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container">
-    <a class="navbar-brand" href="../../index.html">
+    <a class="navbar-brand" href="../index.html">
     <span class="navbar-title">The Defence Economist</span>
     </a>
   </div>
@@ -142,16 +108,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Retrieval Augmented Generation</h1>
+      <h1 class="title">Notes on Economics of Defence - Chapter 7 (Procurement)</h1>
                   <div>
         <div class="description">
-          An applied example using llama index
+          Notes on Chapter 7 Procurement, Theories and Evidence from Sandler and Hartley’s economics of defence
         </div>
       </div>
                           <div class="quarto-categories">
-                <div class="quarto-category">large language models (LLM)</div>
-                <div class="quarto-category">evidence synthesis</div>
-                <div class="quarto-category">methods</div>
+                <div class="quarto-category">knowledge of economics</div>
+                <div class="quarto-category">defence</div>
                 <div class="quarto-category">notes</div>
               </div>
                   </div>
@@ -170,7 +135,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">November 19, 2023</p>
+        <p class="date">December 27, 2023</p>
       </div>
     </div>
     
@@ -187,10 +152,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
-  <li><a href="#load-pdf" id="toc-load-pdf" class="nav-link" data-scroll-target="#load-pdf">Load PDF</a></li>
-  <li><a href="#create-a-vector-store-index" id="toc-create-a-vector-store-index" class="nav-link" data-scroll-target="#create-a-vector-store-index">Create a Vector Store Index</a></li>
-  <li><a href="#query" id="toc-query" class="nav-link" data-scroll-target="#query">Query</a></li>
-  <li><a href="#next-steps" id="toc-next-steps" class="nav-link" data-scroll-target="#next-steps">Next Steps</a></li>
+  <li><a href="#market-failure" id="toc-market-failure" class="nav-link" data-scroll-target="#market-failure">2.1 Market Failure</a></li>
+  <li><a href="#demand-procurement-policy" id="toc-demand-procurement-policy" class="nav-link" data-scroll-target="#demand-procurement-policy">2.2 Demand: procurement policy</a></li>
+  <li><a href="#competition-firm-behavior-bargaining-and-contract-types" id="toc-competition-firm-behavior-bargaining-and-contract-types" class="nav-link" data-scroll-target="#competition-firm-behavior-bargaining-and-contract-types">2.3 Competition, firm behavior, bargaining, and contract types</a></li>
+  <li><a href="#cost-estimating-relationships" id="toc-cost-estimating-relationships" class="nav-link" data-scroll-target="#cost-estimating-relationships">2.4 Cost-estimating relationships</a></li>
+  <li><a href="#the-new-economics-of-defense-procurement-and-contracting" id="toc-the-new-economics-of-defense-procurement-and-contracting" class="nav-link" data-scroll-target="#the-new-economics-of-defense-procurement-and-contracting">2.5 The new economics of defense procurement and contracting</a></li>
+  <li><a href="#game-theory-and-procurement" id="toc-game-theory-and-procurement" class="nav-link" data-scroll-target="#game-theory-and-procurement">2.6 Game theory and procurement</a></li>
+  <li><a href="#the-impact-of-market-failure-of-contracting" id="toc-the-impact-of-market-failure-of-contracting" class="nav-link" data-scroll-target="#the-impact-of-market-failure-of-contracting">2.7 The Impact of Market Failure of Contracting</a></li>
+  <li><a href="#regulation" id="toc-regulation" class="nav-link" data-scroll-target="#regulation">2.8 Regulation</a></li>
+  <li><a href="#competition-contracts-and-performance" id="toc-competition-contracts-and-performance" class="nav-link" data-scroll-target="#competition-contracts-and-performance">2.9 Competition, contracts, and performance</a></li>
+  <li><a href="#conclusion-the-results-of-competition" id="toc-conclusion-the-results-of-competition" class="nav-link" data-scroll-target="#conclusion-the-results-of-competition">2.10 Conclusion: the results of competition</a></li>
   </ul>
 </nav>
     </div>
@@ -202,71 +173,48 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
-<p>This examples shows how to load data from a pdf, create emeddings, and then query the data.</p>
+<p>The chapter reviews literature on defence contracts and competitive procurement, exploring various contract types and the decision-making processes in defence equipment acquisition. The complexity of contracting involves transaction costs related to acquiring information, organizing competitions, bargaining, and enforcing contracts. The government, as a buyer or principal, must specify requirements and ensure that contractors pursue the principal’s goals. Contracts that cannot detail all buyer requirements may lead to discretionary behaviour by contractors, influenced by their preferences. Monitoring and enforcing contracts require measurable outputs, and incentives and penalties in contracts impact the behaviour of agents. The chapter reviews traditional approaches to defence contracting, cost-estimating relationships, and various contract types, including recent theoretical developments. Focus is given to market features, agent behaviour, and responses to contractual incentives and regulatory constraints.</p>
 </section>
-<section id="load-pdf" class="level1">
-<h1>Load PDF</h1>
-<p>We load the major projects report 2015 into python using (<code>smart_pdf_loader</code>)[https://llamahub.ai/l/smart_pdf_loader].</p>
-<blockquote class="blockquote">
-<p>SmartPDFLoader is a super fast PDF reader that understands the layout structure of PDFs such as nested sections, nested lists, paragraphs and tables. It uses layout information to smartly chunk PDFs into optimal short contexts for LLMs.</p>
-</blockquote>
-<div class="cell" data-execution_count="1">
-<details open="">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> llama_hub.smart_pdf_loader <span class="im">import</span> SmartPDFLoader</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>llmsherpa_api_url <span class="op">=</span> <span class="st">"https://readers.llmsherpa.com/api/document/developer/parseDocument?renderFormat=all"</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>pdf_url <span class="op">=</span> <span class="st">"https://www.nao.org.uk/wp-content/uploads/2015/10/Major-Projects-Report-2015-and-the-Equipment-Plan-2015-2025.pdf"</span> <span class="co"># also allowed is a file path e.g. /home/downloads/xyz.pdf</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>pdf_loader <span class="op">=</span> SmartPDFLoader(llmsherpa_api_url<span class="op">=</span>llmsherpa_api_url)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>documents <span class="op">=</span> pdf_loader.load_data(pdf_url)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>documents[<span class="dv">0</span>:<span class="dv">2</span>] <span class="co"># look at first 3 chunks </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>[Document(id_='7adbabd4-1df8-4ea6-a5cb-ff56f550e0c6', embedding=None, metadata={'chunk_type': 'para'}, excluded_embed_metadata_keys=[], excluded_llm_metadata_keys=[], relationships={}, hash='7b2a550370ad85d6de2541a641003a5b2971d0115121e67f6ff2a3183be0b7c8', text='Report\nby the Comptroller and Auditor General', start_char_idx=None, end_char_idx=None, text_template='{metadata_str}\n\n{content}', metadata_template='{key}: {value}', metadata_seperator='\n'),
- Document(id_='3762c995-6cbd-4f15-9e16-491bcc9f1dad', embedding=None, metadata={'chunk_type': 'list_item'}, excluded_embed_metadata_keys=[], excluded_llm_metadata_keys=[], relationships={}, hash='bb8a396323dd4d9c61c79ed4882caa34151071ed1e48e554c8da9f00a2491810', text='Major Projects Report 2015 and the Equipment Plan 2015 to 2025\nHC 488-I', start_char_idx=None, end_char_idx=None, text_template='{metadata_str}\n\n{content}', metadata_template='{key}: {value}', metadata_seperator='\n')]</code></pre>
-</div>
-</div>
+<section id="market-failure" class="level1">
+<h1>2.1 Market Failure</h1>
+<p>Defence equipment markets function similarly to other markets by connecting buyers (defence ministries and armed forces) with sellers (defence industries). The demand for defence equipment comes from national defence ministries, armed forces, and overseas governments, while defence industries, both nationally and internationally, supply the equipment. The interaction between demand and supply is formalized through legally binding contracts, where buyers commit to paying a specified price for a product delivered on time. Governments, acting as buyers, may impose regulatory requirements on contractors, such as profit controls, adding a layer of oversight. The text introduces Figure 5.1, illustrating the market situation with a UK example. Despite similarities, defence equipment markets have unique characteristics, including the central role of governments, cost trends, technical progress, cost curves, and regulatory aspects. The government’s role is crucial in determining technical progress, choosing equipment, and deciding whether to import or buy domestically. Cost trends indicate that defence equipment, especially high-tech items, tends to become costlier over time. Technical progress is a distinctive feature, leading to new products and markets, but also resulting in a smaller number of large firms dominating high-tech sectors. Cost curves show that production costs of defence equipment increase over time, leading to downward pressures on the size and structure of armed forces. Regulation plays a significant role in defence markets, with governments determining market openness, monitoring costs, and regulating profits on defence contracts. The text refers to previous work by Peck and Scherer in 1963, highlighting the enduring relevance of these considerations in defence equipment markets.</p>
+<p><em>Government Influence in Defence Markets and Policy Objectives.</em></p>
+<p>As a monopsonist, the government determines technical progress by choosing equipment and decides whether to import or buy domestically. Government influence extends to determining the size and composition of its domestic defence capabilities. The choice of defence equipment, including combat aircraft, missiles, submarines, and tanks, impacts the industry’s structure, entry and exit, prices, exports, and profits. Some advocate for an interventionist approach, using defence procurement to support “key” technologies and back industry winners as part of national industrial policy. Supporters of free markets, such as Austrian economists, criticize this interventionist stance, emphasizing the uncertainty of the future and the unintended consequences of government involvement. Public choice analysis predicts potential government failures in efforts to improve economic performance. The use of defence procurement as an instrument of industrial policy raises fundamental questions about the objectives of defence policy. Questions arise regarding whether defence procurement aims at efficiently acquiring equipment for national defence or pursuing broader economic and social objectives, including protecting the national defence industrial base.</p>
+<p><em>Challenges of Rising Costs in Defence Equipment and Adaptive Procurement Policies.</em></p>
+<p>High technology defence equipment is costly and experiencing rising costs in real terms. Examples include the estimated $35 billion cost for fifteen American B2 stealth bombers and approximately $130 million per copy for the US F-22 advanced tactical fighter aircraft (1991-2 prices). Despite increased costs, new equipment is more productive than previous generations. Real unit production costs of defence equipment, including aircraft, helicopters, missiles, warships, and submarines, increase by about 10 percent per annum. This cost trend implies a doubling in cost approximately every 7.25 years. Defence budgets often fail to match these cost increases, leading to downward pressures on the size and structure of armed forces. There is a need to reshape defence industries supplying the forces, evident in long-term trends like a one-ship navy and a one-aircraft air force. Efforts are made to address these challenges through adaptive procurement policies, such as competition policy, aiming to postpone some of the adjustment effects associated with rising costs.</p>
+<p><em>Evolution of Defence Equipment Markets and the Impact of Technical Progress.</em></p>
+<p>Technical progress is a distinctive feature of defence equipment markets. Major advances, such as in jet engines, missiles, electronics, and helicopters, create new markets. Firms must invest in new development and production facilities with a focus on research and development (R &amp; D). Since 1945, there’s a long-term trend towards fewer, larger firms, seen through mergers and exits from the defence sector. High technology sectors, like aerospace and avionics, often have one or a few large national suppliers, forming a monopoly or oligopoly. This market structure deviates significantly from the economists’ model of perfect competition. Defence spending cuts in the USA, UK, and the EU during the 1990s contribute to exits from the industry and restructuring around fewer large defence contractors. EU states may maintain competition by opening their national markets to foreign suppliers.</p>
+<p><em>Economies of Scale and Competitiveness in High Technology Defence Sectors.</em></p>
+<p>Some defence industries, especially high-tech sectors, exhibit decreasing costs, emphasizing economies of scale. A national market in such sectors may only support one firm, resembling a monopoly. Quantity becomes a critical factor in determining unit costs and overall competitiveness. Long production runs allow for spreading high fixed research and development (R &amp; D) costs over a larger volume. Scale and learning economies in production contribute to cost efficiency and competitiveness in high-tech defence sectors.</p>
+<p><em>Government Regulation and Profit Controls in Defence Markets.</em></p>
+<p>Defence markets and industries are subject to government regulation. Governments have the authority to determine whether national markets should be open or closed. Monitoring costs and profit controls on defence contracts are common regulatory practices. Profit controls aim to prevent excessive profits or losses on defence business and maintain a domestic industrial base. Profit levels may not serve as a standard signalling mechanism for entry or exit due to regulatory constraints. Profit-conscious firms may adapt by increasing expenditure on unregulated items, such as luxury offices, company cars, and hoarding scientists and engineers. The Tisdell and Hartley (1981) reference provides further insights into microeconomic policy in this context.</p>
 </section>
-<section id="create-a-vector-store-index" class="level1">
-<h1>Create a Vector Store Index</h1>
-<p>The documentation on <a href="https://gpt-index.readthedocs.io/en/v0.6.8/reference/indices/vector_store.html">VectorStoreIndex</a> feels a little light. My understanding (not least through reference to OpenAI billing) is that this step uses OpenAI <code>ada</code> model for embeddings and then stores the index.</p>
-<div class="cell" data-execution_count="2">
-<details open="">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> llama_index <span class="im">import</span> VectorStoreIndex</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> VectorStoreIndex.from_documents(documents)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>index</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-display" data-execution_count="2">
-<pre><code>&lt;llama_index.indices.vector_store.base.VectorStoreIndex at 0x233c568edc0&gt;</code></pre>
-</div>
-</div>
+<section id="demand-procurement-policy" class="level1">
+<h1>2.2 Demand: procurement policy</h1>
 </section>
-<section id="query" class="level1">
-<h1>Query</h1>
-<p>We then use GPT 3.5 is used to query the data.</p>
-<div class="cell" data-execution_count="3">
-<details open="">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>query_engine <span class="op">=</span> index.as_query_engine()</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> query_engine.query(<span class="st">"Summarise this document."</span>)</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(response)</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>response <span class="op">=</span> query_engine.query(<span class="st">"what are the main causes of schedule variation?"</span>)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(response)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>The document is titled "Major Projects Report 2015 and the Equipment Plan 2015 to 2025." It contains an executive project summary and an overview of cost, time, and performance. The report discusses the Department's ability to fund the Equipment Plan and suggests that the Affordability Statement should provide clearer information about uncertainties in costs and the range of possible cost outcomes. It also mentions the need to quantify risks not included in cost forecasts. The document is printed on Evolution Digital Satin paper, which is sourced from responsibly managed and sustainable forests certified by the FSC.
-The main causes of schedule variation are the net 52-month deferment of the final stage of the Core Production Capability project and the net variation of 8 months in the remaining projects.</code></pre>
-</div>
-</div>
+<section id="competition-firm-behavior-bargaining-and-contract-types" class="level1">
+<h1>2.3 Competition, firm behavior, bargaining, and contract types</h1>
 </section>
-<section id="next-steps" class="level1">
-<h1>Next Steps</h1>
-<ol type="1">
-<li>Being able to search over multiple documents</li>
-<li>Being able to cite sources.</li>
-</ol>
+<section id="cost-estimating-relationships" class="level1">
+<h1>2.4 Cost-estimating relationships</h1>
+</section>
+<section id="the-new-economics-of-defense-procurement-and-contracting" class="level1">
+<h1>2.5 The new economics of defense procurement and contracting</h1>
+</section>
+<section id="game-theory-and-procurement" class="level1">
+<h1>2.6 Game theory and procurement</h1>
+</section>
+<section id="the-impact-of-market-failure-of-contracting" class="level1">
+<h1>2.7 The Impact of Market Failure of Contracting</h1>
+</section>
+<section id="regulation" class="level1">
+<h1>2.8 Regulation</h1>
+</section>
+<section id="competition-contracts-and-performance" class="level1">
+<h1>2.9 Competition, contracts, and performance</h1>
+</section>
+<section id="conclusion-the-results-of-competition" class="level1">
+<h1>2.10 Conclusion: the results of competition</h1>
 
 
 </section>
