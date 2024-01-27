@@ -1,0 +1,271 @@
+---
+title: "NLP with Chat GPT"
+description: "Demonstration using PAC data"
+author: "Luke Heley"
+date: "27 Dec 23"
+freeze: true
+execute:
+  eval: true
+format:
+  html:
+    toc: true
+    code-fold: show
+categories:
+ - large language models (LLM)
+ - evidence synthesis
+ - methods
+ - notes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r}
+# Load Lines and Split YAML and MD
+lines <- readLines("pac.md")
+yaml_index <- (stringr::str_detect(lines, "---") |>
+  which())[1:2]
+yaml <- lines[yaml_index[1]:yaml_index[2]]
+md <- lines[(yaml_index[2]+1):length(lines)]
+
+```
+
+```{r}
+# Extract Questions and Individual
+df <- dplyr::tibble(text = md) |>
+  dplyr::summarise(text = paste(text, collapse = "\n")) |>
+  dplyr::mutate(text = stringr::str_split(text, "\n\n")) |>
+  tidyr::unnest(text) |>
+  dplyr::slice(8:457) |>
+  dplyr::mutate(paragraph_id = 1:dplyr::n()) |>
+  dplyr::mutate(question = stringr::str_extract(text, "^Q[1-9] |^Q[1-9][0-9] |Q[1-9][0-9]{2} ")) |>
+  dplyr::mutate(person = stringr::str_locate(text, ": ")[,"start"]) |>
+  dplyr::mutate(person = substr(text, 1, person-1)) |>
+  dplyr::mutate(text = ifelse(!is.na(person), stringr::str_remove(text, paste0(person, ": ")), text)) |>
+  tidyr::fill(question, person) |>
+  dplyr::mutate(person = trimws(stringr::str_remove(person, question))) |>
+  dplyr::mutate(question = trimws(question))
+
+df |>
+  dplyr::filter(text == "")
+
+```
+
+
+```{python}
+#| eval: false
+# Setup Open AI
+import os
+from openai import OpenAI
+from tqdm import tqdm
+n = len(r.df["text"])
+client = OpenAI(
+    # This is the default and can be omitted
+    api_key=os.environ.get("OPENAI_API_KEY"),
+)
+```
+
+```{python}
+#| eval: false
+# Extract the keywords
+keywords = []
+for i in tqdm(range(0, n)):
+  para = r.df["text"][i]
+  chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+             "content": f"Label the topics being discussed in the following paragraph using words or a short phrase, separate the topic labels with a comma:\n {para}\n",
+        }
+    ],
+    model="gpt-3.5-turbo",
+    )
+  keywords.append(chat_completion.choices[0].message.content)
+
+
+```
+
+```{python}
+#| eval: false
+sentiment = []
+for i in tqdm(range(0, n)):
+  para = r.df["text"][i]
+  chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+             "content": f":Rate the sentiment expressed in the following paragraph on a scale of 1 to 10 where 1 is very negative and 10 is very positive:\n {para}\n",
+        }
+    ],
+    model="gpt-3.5-turbo",
+    )
+  sentiment.append(chat_completion.choices[0].message.content)
+
+```
+
+```{python}
+#| eval: false
+df = r.df
+df["keywords"] = keywords
+df["sentiment"] = sentiment
+df.to_csv("out.csv", index=False)
+```
+
+
+```{r}
+library(ggplot2)
+df <- readr::read_csv("out.csv")
+
+na <- c("I'm sorry, but without any specific sentiment mentioned in the paragraph, it is not possible to rate it on a scale of 1 to 10. The paragraph simply asks for clarification regarding the timeframe of something, and does not express any positive or negative sentiment.",    
+"As an AI language model, I do not possess personal opinions or emotions. Therefore, I am unable to rate the sentiment expressed in the given statement." ,
+"Without any additional context, it is difficult to accurately rate the sentiment expressed in the given statement.",
+"Without any context provided, it is impossible to determine the sentiment expressed in the given phrase.",
+"Since the given statement is an incomplete sentence, it is difficult to determine the exact sentiment being expressed. Therefore, it is not possible to rate the sentiment on a scale of 1 to 10.",
+"It is difficult to accurately rate the sentiment expressed in this paragraph since it is incomplete and lacks emotional context. Without further information, it is not possible to determine whether the sentiment is positive or negative.",
+"I'm sorry, but the given sentence \"It is 2032.\" does not convey any sentiment, as it is a neutral statement indicating a specific year. Therefore, it would not be accurate to rate it on a scale of 1 to 10.", 
+"Without the complete sentence, it is difficult to accurately rate the sentiment expressed in the paragraph. Please provide the full sentence for a more accurate assessment.",
+"I am sorry, but the given phrase does not convey any specific sentiment. It appears to be incomplete and lacks context.",
+"There is no clear sentiment expressed in the sentence \"Yes.\" Therefore, it is not possible to rate its sentiment on a scale from 1 to 10."
+)    
+
+
+df <- df |> 
+  dplyr::mutate(sentiment_score = as.numeric(stringr::str_extract(sentiment, "[1-9].5|[1-9]|10"))) |>
+  dplyr::mutate(sentiment_score = ifelse(sentiment %in% na, 5, sentiment_score)) |> 
+  dplyr::mutate(question = as.numeric(stringr::str_remove(question, "Q"))) 
+
+ggplot(df) + geom_line(aes(paragraph_id, sentiment_score))
+
+ggplot(df) + geom_boxplot(aes(person, sentiment_score)) + coord_flip()
+
+ggplot(df) + geom_tile(aes(question, factor(person, rev(unique(person))), fill = sentiment_score)) +
+  scale_fill_viridis_c() +
+  theme_minimal() + 
+  labs(y = "Person", x = "Question", fill = "Sentiment")
+```
+
+```{r}
+library(plotly)
+
+df$split_text <- purrr::map_chr(df$text, ~{
+  # Locate Spaces
+  spaces <- stringr::str_locate_all(.x, "\\s")[[1]][,"start"]
+  
+  # Locate Space Closest to Every N Characters
+  n <- 100
+  if(max(spaces)<n) {
+    from <- 1
+    to <- nchar(.x)
+  } else{
+    splits <- purrr::map_int(seq(n, nchar(.x), by = n), ~{
+      spaces[which(abs(spaces-.x) == min(abs(spaces-.x)))][1]
+    })
+    from <- head(c(1, splits, nchar(.x)), -1)
+    to <- tail(c(1, splits, nchar(.x)), -1)
+  }
+  
+  new_text <- character()
+  for(j in seq_along(from)){
+    new_text <- paste0(new_text, paste0(substr(.x, from[j], to[j])), "<br>")
+  }
+  new_text
+  
+
+})
+
+
+plot_ly(df, x = ~question, 
+        y = ~factor(person,rev(unique(person))), 
+        z = ~sentiment_score, type = "heatmap",
+        text = ~split_text,
+        hovertemplate = "%{text}<extra></extra>") |>
+  layout(yaxis = list(title = "Person"),
+         xaxis = list(title = "Question")) 
+  
+```
+
+```{r}
+question_text2 <- df |> 
+  dplyr::group_by(question) |> 
+  dplyr::group_split() |>
+  purrr::map(~{
+    dplyr::tibble(
+      question = .x$question[1], 
+      text = paste(paste(paste0(.x$person,":"), .x$text), collapse = "\n")
+    )
+    }) |>
+  dplyr::bind_rows() 
+
+```
+
+
+```{python}
+#| eval: false
+# Extract the keywords
+topics = []
+n = len(r.question_text2["text"])
+for i in tqdm(range(0, n)):
+  para = r.question_text["text"][i]
+  chat_completion = client.chat.completions.create(
+    messages=[
+        {
+            "role": "user",
+             "content": f"Label the topic being discussed in the given context using only a single word or very short phrase. Context:\n {para}\n",
+        }
+    ],
+    model="gpt-3.5-turbo",
+    )
+  topics.append(chat_completion.choices[0].message.content)
+
+```
+
+
+```{r}
+#| eval: false
+library(reticulate)
+
+q_sent_topic <- df |> 
+  dplyr::group_by(question) |> 
+  dplyr::group_split() |>
+  purrr::map(~{
+    dplyr::tibble(
+      question = .x$question[1], 
+      text = paste(paste(paste0(.x$person,":"), .x$text), collapse = "\n"),
+      avg_sentiment = mean(.x$sentiment_score, na.rm = TRUE)
+    )
+    }) |>
+  dplyr::bind_rows() |>
+  dplyr::mutate(topic = py$topics) 
+
+write.csv(q_sent_topic, "q_sent_topic.csv", row.names = FALSE)
+```
+
+```{r}
+q_sent_topic <- readr::read_csv("q_sent_topic.csv")
+
+pdf <- q_sent_topic |>
+  dplyr::mutate(id = paste(question, topic))  |>
+  dplyr::mutate(avg_sentiment = avg_sentiment-5) |>
+  dplyr::mutate(positive = avg_sentiment>0)
+
+pdf |>
+  dplyr::slice(1:50) |>
+  ggplot() + geom_bar(aes(factor(id,rev(unique(id))), avg_sentiment, fill = positive), stat = "identity") + 
+  coord_flip() +
+  scale_y_continuous(breaks = -4:4,
+                     limits = c(-4, 4))
+
+pdf |>
+  dplyr::slice(51:100) |>
+  ggplot() + geom_bar(aes(factor(id,rev(unique(id))), avg_sentiment, fill = positive), stat = "identity") + 
+  coord_flip() +
+  scale_y_continuous(breaks = -4:4,
+                     limits = c(-4, 4))
+
+
+pdf |>
+  dplyr::slice(101:150) |>
+  ggplot() + geom_bar(aes(factor(id,rev(unique(id))), avg_sentiment, fill = positive), stat = "identity") + 
+  coord_flip() +
+  scale_y_continuous(breaks = -4:4,
+                     limits = c(-4, 4))
+```
