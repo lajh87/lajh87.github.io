@@ -134,13 +134,7 @@ df <- df |>
   dplyr::mutate(question = as.numeric(stringr::str_remove(question, "Q"))) 
 
 ggplot(df) + geom_line(aes(paragraph_id, sentiment_score))
-
 ggplot(df) + geom_boxplot(aes(person, sentiment_score)) + coord_flip()
-
-ggplot(df) + geom_tile(aes(question, factor(person, rev(unique(person))), fill = sentiment_score)) +
-  scale_fill_viridis_c() +
-  theme_minimal() + 
-  labs(y = "Person", x = "Question", fill = "Sentiment")
 ```
 
 ```{r}
@@ -241,6 +235,14 @@ write.csv(q_sent_topic, "q_sent_topic.csv", row.names = FALSE)
 
 ```{r}
 q_sent_topic <- readr::read_csv("q_sent_topic.csv")
+q_sent_topic |>
+  dplyr::select(topic, question, text, avg_sentiment) |>
+  DT::datatable()
+
+q_sent_topic |>
+  dplyr::select(topic, question, text) |>
+  dplyr::mutate(topic = as.factor(topic)) |>
+  DT::datatable(filter = "top")
 
 pdf <- q_sent_topic |>
   dplyr::mutate(id = paste(question, topic))  |>
