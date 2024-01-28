@@ -235,14 +235,13 @@ write.csv(q_sent_topic, "q_sent_topic.csv", row.names = FALSE)
 
 ```{r}
 q_sent_topic <- readr::read_csv("q_sent_topic.csv")
-q_sent_topic |>
-  dplyr::select(topic, question, text, avg_sentiment) |>
-  DT::datatable()
+
 
 q_sent_topic |>
-  dplyr::select(topic, question, text) |>
-  dplyr::mutate(topic = as.factor(topic)) |>
-  DT::datatable(filter = "top")
+  dplyr::mutate(topic = paste0("Q", question, " ", topic)) |>
+  dplyr::select(topic, question, text, avg_sentiment) |>
+  dplyr::mutate(topic = factor(topic, unique(topic))) |>
+  DT::datatable(filter = "top", rownames = FALSE)
 
 pdf <- q_sent_topic |>
   dplyr::mutate(id = paste(question, topic))  |>
