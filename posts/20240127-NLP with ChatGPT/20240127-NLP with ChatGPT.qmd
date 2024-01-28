@@ -2,7 +2,7 @@
 title: "NLP with Chat GPT"
 description: "Demonstration using PAC data"
 author: "Luke Heley"
-date: "27 Dec 23"
+date: "27 Jan 24"
 freeze: true
 execute:
   eval: true
