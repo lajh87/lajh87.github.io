@@ -2,7 +2,7 @@
 title: "Notes on Economics of Defence - Chapter 7 (Procurement)"
 description: "Notes on Chapter 7 Procurement, Theories and Evidence from Sandler and Hartley's economics of defence"
 author: "Luke Heley"
-date: "27 Jan 24"
+date: "28 Jan 24"
 freeze: true
 execute:
   eval: true
