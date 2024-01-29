@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/20230519-Voluntary Job Separation Rates/20230519-vjs-rates.html",
       "/posts/20240127-Notes on Hartley and Sandler/20240127-Notes on Hartley and Sandler.html",
       "/posts/20240127-NLP with ChatGPT/20240127-NLP with ChatGPT.html",
       "/posts/20240127-NLP with ChatGPT/pac.html",
@@ -10,7 +11,6 @@
       "/posts/20230829-Synthetic Control Methods/synthetic-control.html",
       "/posts/20230618-Regression Discontinuity Design/rdd.html",
       "/posts/20230530-Homo Deus NLP/homo_deus_nlp.html",
-      "/posts/20230519-Voluntary Job Separation Rates/20230519-vjs-rates.html",
       "/posts/20230518-Guardian-What-We-Know-Ukraine/20230518-Extract-People-from-Text.html",
       "/posts/20230518-Guardian-What-We-Know-Ukraine/20230518-Ukraine-What-We-Know-Guardian-NLP.html",
       "/posts/20230401-extract-uk-frigate-data/20230401-extract-uk-frigate-data.html",

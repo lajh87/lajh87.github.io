@@ -2,7 +2,7 @@
 title: "Calculate Voluntary Job Separation Rates"
 description: "Calculate voluntary job separation rates from the two quarter labour force survey"
 author: "Luke Heley"
-date: "19 May 2023"
+date: "29 January 2024"
 freeze: true
 execute:
   eval: true
@@ -174,4 +174,6 @@ ggplot(vjs_sector) +
 
 DBI::dbDisconnect(con)
 
+write.csv(vjs_total, "vjs_total.csv", row.names=FALSE)
+write.csv(vjs_sector, "vjs_sector.csv", row.names = FALSE)
 ```
