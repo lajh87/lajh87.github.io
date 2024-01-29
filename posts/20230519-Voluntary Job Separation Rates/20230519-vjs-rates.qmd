@@ -60,9 +60,8 @@ sector <- "PUBLICR1"
 employment <- "ILODEFR1"
 age <- "AGE1"
 id <- c("PERSID")
-lgwt <- c("LGWT","LGWT18", "LGWT20") # This responds to different population weights.
-industry <- "INDD07M1"
-vars <- c(id, lgwt, wnleft, relft, sector, employment, age, industry)
+lgwt <- c("LGWT","LGWT18", "LGWT20", "LGWT22") # This responds to different population weights.
+vars <- c(id, lgwt, wnleft, relft, sector, employment, age)
 
 tbls <- DBI::dbListTables(con)
 tbls <- tbls[grepl("sn_", tbls)]
@@ -71,14 +70,32 @@ variables <- tbls |>
   purrr::map_df(function(tbl){
     variables <- con |>
       dplyr::tbl(tbl) |>
-      dplyr::select(tidyselect::any_of(vars)) |>
-      head() |>
-      dplyr::collect() |>
+      head(n = 100) |>
+      dplyr::collect() 
+    
+    nm <- names(variables)
+    names(variables) <- toupper(nm)
+    
+  variables <- variables |>  
+    dplyr::select(tidyselect::any_of(vars)) |>
       names()
     
     tibble::tibble(study = substr(tbl, 4, 9), variables)
   })
 
+
+variables |> 
+  dplyr::filter(variables %in% vars) |>
+  dplyr::mutate(variables2 = dplyr::case_when(
+                   variables %in% relft ~ "REDYLFT",
+                   variables %in% wnleft ~ "WNLEFT",
+                   variables %in% lgwt ~ "LGWT",
+                   TRUE ~ variables
+                 )) |>
+  dplyr::group_by(study, variables2) |>
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") |>
+  dplyr::filter(n > 1L) 
+  
 #+ Select tables the contain the variables we need -----
 tbls <- paste0("sn_", variables |> 
                  dplyr::filter(variables %in% vars) |>
@@ -90,7 +107,8 @@ tbls <- paste0("sn_", variables |>
                  )) |>
                  dplyr::select(-variables) |>
                  dplyr::mutate(value = 1) |>
-                 tidyr::pivot_wider(names_from = variables2, values_from = value)  |>
+                 tidyr::pivot_wider(names_from = variables2, values_from = value,
+                                    values_fn = function(x) x[1])  |>
                  na.omit() |>
                  dplyr::select(study) |> dplyr::pull())
 
@@ -113,9 +131,16 @@ tbls <- paste0("sn_", variables |>
 vjs <- tbls |>
   purrr::map_df(function(tbl){
     sql_tbl <- con |> dplyr::tbl(tbl) 
-    sql_tbl |>
-      dplyr::select(tidyselect::any_of(vars)) |>
-      dplyr::rename(REDYLFT = tidyselect::any_of(relft)) |>
+    
+    sql_tbl <- sql_tbl |>
+      dplyr::select(tidyselect::any_of(vars)) 
+    
+    if(length(which(colnames(sql_tbl) %in% lgwt))>1){
+      sql_tbl <- sql_tbl |> dplyr::select(-LGWT20)
+    }
+    
+    sql_tbl |>  
+    dplyr::rename(REDYLFT = tidyselect::any_of(relft)) |>
       dplyr::rename(WNLEFT = tidyselect::any_of(wnleft)) |>
       dplyr::rename(LGWT = tidyselect::any_of(lgwt))|>
       dplyr::filter(AGE1 >= 16 & AGE1 < 65) |>
@@ -125,6 +150,7 @@ vjs <- tbls |>
         "REDYL112" %in% dplyr::tbl_vars(sql_tbl) ~  REDYLFT %in% 4:10,
         "REDYL132" %in% dplyr::tbl_vars(sql_tbl) ~  REDYLFT %in% c(3, 5:11)
       )) |>
+     
       dplyr::mutate(LFT3M = WNLEFT == 1 & ILODEFR1 == 1) |> 
       dplyr::mutate(VJS_3M =  VJS & LFT3M) |>
       dplyr::mutate(EMP = ILODEFR1 == 1) |>
