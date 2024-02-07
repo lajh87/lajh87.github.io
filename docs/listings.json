@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/20240207-How Have Commuting Flows Changed Between 2011 and 2021/20240207-How Have Commuting Flows Changed Between 2011 and 2021.html",
       "/posts/20230519-Voluntary Job Separation Rates/20230519-vjs-rates.html",
       "/posts/20240127-Notes on Hartley and Sandler/20240127-Notes on Hartley and Sandler.html",
       "/posts/20240127-NLP with ChatGPT/20240127-NLP with ChatGPT.html",
@@ -16,8 +17,7 @@
       "/posts/20230401-extract-uk-frigate-data/20230401-extract-uk-frigate-data.html",
       "/posts/20230401-wikidata-type23/20230401-wikidata-type23.html",
       "/posts/20230326-using-wikidata/using-wikidata.html",
-      "/posts/20230401-wikidata-extract-preceded-by/20230401-extract-preceded-by.html",
-      "/posts/20240207-How Have Commuting Flows Changed Between 2011 and 2021/20240207-How Have Commuting Flows Changed Between 2011 and 2021.html"
+      "/posts/20230401-wikidata-extract-preceded-by/20230401-extract-preceded-by.html"
     ]
   }
 ]

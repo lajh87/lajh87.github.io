@@ -2,7 +2,7 @@
 title: "Commuting Flows"
 description: "An exploration of how commuting flows have changed between 2011 and 2021"
 author: "Luke Heley"
-date: "7 Feb 23"
+date: "7 Feb 24"
 freeze: true
 execute:
   eval: true
