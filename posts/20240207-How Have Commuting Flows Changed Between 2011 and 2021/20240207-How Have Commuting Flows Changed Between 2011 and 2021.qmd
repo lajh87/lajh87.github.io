@@ -284,3 +284,62 @@ distances |>
   )
 
 ```
+
+
+```{r}
+f <- flow_2021_geo$oa21cd_residence
+flow_2021_geo |>
+  dplyr::mutate(dist = as.numeric(dist)) |>
+  dplyr::filter(dist >300000) |>
+  dplyr::left_join(
+    db |>
+    dplyr::tbl("oa21_lsoa21_msoa21_lad22") |>
+      dplyr::filter(oa21cd %in% f) |>
+      dplyr::collect() |>
+    dplyr::select(oa21cd, lsoa21nm),
+    by = c("oa21cd_residence" = "oa21cd")
+  ) |>
+  dplyr::select(oa21cd_residence,lsoa21nm, dist, count) |>
+  dplyr::arrange(-dist) |>
+  head(20)
+
+
+top20_2021 <- flow_2021_geo |>
+  dplyr::left_join(
+    db |>
+  dplyr::tbl("oa21_lsoa21_msoa21_lad22") |>
+  dplyr::select(oa21cd, lad22nm) |>
+  dplyr::collect(),
+  by = c("oa21cd_residence" = "oa21cd")
+  ) |>
+  dplyr::group_by(lad22nm) |>
+  dplyr::summarise(count = sum(count)) |>
+  dplyr::arrange(-count) |>
+  head(20) |>
+  dplyr::mutate(year = 2021) |>
+  dplyr::rename(lad = lad22nm) |>
+  head(20)
+
+top20_2011 <- flow_2011_geo |>
+  dplyr::left_join(
+    db |>
+    dplyr::tbl("oa11_lsoa11_msoa11_lad_2017") |>
+    dplyr::select(OA11CD, LAD17NM) |>
+    dplyr::distinct() |>
+    dplyr::collect(),
+    by = c("oa11cd_residence" = "OA11CD")
+  ) |>
+  dplyr::group_by(LAD17NM) |>
+  dplyr::summarise(count = sum(count)) |>
+  dplyr::arrange(-count) |>
+  dplyr::mutate(year = 2011) |>
+  dplyr::rename(lad= LAD17NM) |>
+  head(20)
+
+  ggplot(top20_2021) + geom_bar(aes(factor(lad,rev(unique(lad))), count), stat = "identity") + facet_wrap(~year) +
+  coord_flip()
+
+  ggplot(top20_2011) + geom_bar(aes(factor(lad,rev(unique(lad))), count), stat = "identity") + facet_wrap(~year) +
+  coord_flip()
+
+```
