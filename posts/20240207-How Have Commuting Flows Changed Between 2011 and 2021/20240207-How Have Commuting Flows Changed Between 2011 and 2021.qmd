@@ -1,0 +1,286 @@
+---
+title: "Commuting Flows"
+description: "An exploration of how commuting flows have changed between 2011 and 2021"
+author: "Luke Heley"
+date: "7 Feb 23"
+freeze: true
+execute:
+  eval: true
+format:
+  html:
+    toc: true
+    code-fold: show
+categories:
+ - census
+ - gis
+editor_options:
+  chunk_output_type: console
+---
+
+## Objective
+
+Have the regional flows in Barrow in Furness changed?
+
+## Data
+
+Data are sourced from Census 2011 and Census 2021 flows data.
+
+## Approach
+
+1. Geocode location
+2. Identify the OA / LSOA / MSOA of interest
+3. Compare commuting flows
+
+# Barrow-in-Furness
+
+```{r}
+## Geocode the Location
+library(tidygeocoder)
+lnglat <- dplyr::tibble(location = "Barrow Shipyard") |>
+  geocode(location, method = "osm")
+```
+
+## Geocode the Location
+
+```{r}
+## Plot on a Map
+library(leaflet)
+leaflet(lnglat) |>
+  addTiles() |>
+  addPopups(lng = ~long, lat = ~lat, popup = "Barrow-in-Furness")
+```
+
+## Generate a Bounding Box based on Defined Distance
+
+```{r}
+## Create a Circle
+spdf <- sf::st_as_sf(lnglat, coords = c("long", "lat"), crs = 4326)
+spdf |>
+  sf::st_transform(27700) |>
+  sf::st_buffer(5e3) |>
+  sf::st_transform(4326) |>
+  leaflet::leaflet() |> 
+  leaflet::addTiles() |>
+  leaflet::addPolygons()
+
+``` 
+
+## Query the Output Areas within that Bounding Box
+
+```{r}
+# Load the MSOA in the Area
+db <- DBI::dbConnect(
+    RPostgres::Postgres(),
+    db = "census", 
+    host = "localhost", 
+    port = 5432,
+    user = "postgres", 
+    password = Sys.getenv("postgre_pw")
+  )
+
+bbox <- spdf |>
+  sf::st_transform(27700) |>
+  sf::st_buffer(2.5e3) |>
+ # sf::st_transform(4326) |>
+  sf::st_bbox()
+
+query_bounding_box <- function(bbox, tbl = "ew_msoa_2021", srid = 27700){
+  
+glue::glue("SELECT * FROM {tbl}
+  WHERE  geometry 
+  && 
+    ST_MakeEnvelope (
+      {bbox[1]}, {bbox[2]}, 
+      {bbox[3]}, {bbox[4]}, 
+      {srid})")
+}
+
+oa_2021 <- sf::st_read(db, query = query_bounding_box(bbox, "ew_oa_2021")) |> sf::st_transform(4326)
+
+oa_2011 <- sf::st_read(db, query = query_bounding_box(bbox, "infuse_oa_lyr_2011")) |> sf::st_transform(4326)
+
+leaflet(oa_2021) |>
+  leaflet::addTiles() |>
+  leaflet::addPolygons()
+
+leaflet(oa_2011) |>
+  leaflet::addTiles() |>
+  leaflet::addPolygons()
+
+```
+
+## Extract the Census Flow Data for Those Output Areas
+
+```{r}
+oa21cd_f <- oa_2021 |>
+  dplyr::as_tibble() |>
+  dplyr::pull(oa21cd) |>
+  unique()
+
+oa11cd_f <- oa_2011 |>
+  dplyr::as_tibble() |>
+  dplyr::pull(geo_code) |>
+  unique()
+
+
+flow_2021 <- db |>
+  dplyr::tbl("ODWP01EW_OA") |>
+  dplyr::filter(`oa_of_workplace_code` %in% oa21cd_f) |>
+  dplyr::collect()
+
+flow_2011 <- db |>
+  dplyr::tbl("WF03UK_oa_v1") |>
+  dplyr::filter(area_of_workplace %in% oa11cd_f) |>
+  dplyr::collect()
+
+```
+
+## Calculate the Distance Between Work Areas
+
+```{r}
+oa11_work <- paste0("'", flow_2011$area_of_workplace |> unique() |> paste(collapse = "','"), "'")
+
+oa11_work_geo <- sf::st_read(
+  db, query = glue::glue(
+    "SELECT * FROM infuse_oa_lyr_2011 WHERE geo_code IN ({oa11_work})"
+  )
+) |>
+  sf::st_transform(4326) |>
+  sf::st_centroid() |>
+  dplyr::select(oa11cd_work = geo_code, work_geo = geometry)
+
+
+oa11_residence <-  paste0("'", flow_2011$area_of_usual_residence |> unique() |> paste(collapse = "','"), "'")
+
+oa11_residence_geo <-  sf::st_read(
+  db, query = glue::glue(
+    "SELECT * FROM infuse_oa_lyr_2011 WHERE geo_code IN ({oa11_residence})"
+  )
+) |>
+  sf::st_transform(4326) |>
+  sf::st_centroid() |>
+  dplyr::select(oa11cd_residence = geo_code, residence_geo = geometry)
+
+
+flow_2011_geo <- flow_2011 |>
+  dplyr::select(
+    oa11cd_residence = area_of_usual_residence,
+    oa11cd_work = area_of_workplace, 
+    count = persons) |>
+  dplyr::left_join(oa11_residence_geo) |>
+  dplyr::left_join(oa11_work_geo)  |>
+  dplyr::mutate(
+    dist = sf::st_distance(residence_geo, work_geo, by_element = TRUE)
+    )
+
+
+```
+
+```{r}
+oa21_work <- paste0("'",flow_2021$oa_of_workplace_code |> unique() |>
+  paste(collapse = "','"), "'")
+
+oa21_work_geo <- sf::st_read(
+  db, query = glue::glue(
+    "SELECT * FROM ew_oa_2021 WHERE oa21cd IN ({oa21_work})"
+    )) |>
+  sf::st_transform(4326) |>
+  sf::st_centroid() |>
+  dplyr::select(oa21cd_work = oa21cd, work_geo = geometry)
+
+oa21_residence <- paste0("'",flow_2021$output_areas_code |> unique() |>
+  paste(collapse = "','"), "'")
+
+oa21_residence_geo <- sf::st_read(
+  db, query = glue::glue(
+    "SELECT * FROM ew_oa_2021 WHERE oa21cd IN ({oa21_residence})"
+    )) |>
+  sf::st_transform(4326) |>
+  sf::st_centroid() |>
+  dplyr::select(oa21cd_residence = oa21cd, residence_geo = geometry)
+
+flow_2021_geo <- flow_2021 |>
+  dplyr::select(
+    oa21cd_residence = output_areas_code,
+    oa21cd_work = oa_of_workplace_code, 
+    workplace_indicator = place_of_work_indicator_4_categories_label,
+    count) |>
+  dplyr::left_join(oa21_residence_geo) |>
+  dplyr::left_join(oa21_work_geo)  |>
+  dplyr::mutate(
+    dist = sf::st_distance(residence_geo, work_geo, by_element = TRUE)
+    )
+
+```
+
+## Compare Summary Statistics
+
+```{r}
+
+flow_2011_geo |>
+  dplyr::summarise(avg = mean(dist),
+                   total = sum(count*dist),
+                   w_avg = sum(count*dist)/sum(count),
+                   count = sum(count)) |>
+  dplyr::mutate(year = 2011) |>
+  dplyr::bind_rows(
+    
+  flow_2021_geo |>
+    dplyr::summarise(avg = mean(dist),
+                     total = sum(count*dist),
+                     w_avg = sum(count*dist)/sum(count),
+                     count = sum(count)) |>
+    dplyr::mutate(year = 2021)
+  )
+
+```
+
+```{r}
+dist_2011 <- flow_2011_geo |>
+  dplyr::select(count, dist) |>
+  purrr::pmap(function(count, dist) rep(dist, count)) |>
+  unlist()
+
+dist_2021 <- flow_2021_geo |>
+  dplyr::select(count, dist) |>
+  purrr::pmap(function(count, dist) rep(dist, count)) |>
+  unlist()
+
+flow_2021_geo |>
+  dplyr::group_by(workplace_indicator) |>
+  dplyr::summarise(count = sum(count))
+
+dist_2021_not_wfh <- flow_2021_geo |>
+  dplyr::filter(workplace_indicator != "Mainly working at or from home, No fixed place") |>
+  dplyr::select(count, dist) |>
+  purrr::pmap(function(count, dist) rep(dist, count)) |>
+  unlist()
+
+distances <- dplyr::tibble(year = as.character(2011), dist = dist_2011) |>
+  dplyr::bind_rows(
+    dplyr::tibble(year = as.character(2021), dist = dist_2021)
+  ) |>
+  dplyr::bind_rows(
+    dplyr::tibble(year = "2021 (Not WfH)", dist = dist_2021_not_wfh)
+  )
+
+library(ggplot2)
+
+ggplot(distances) + geom_density(aes(dist, colour = as.factor(year)))
+
+distances |>
+  dplyr::group_by(year) |>
+  dplyr::summarise(
+    min = min(dist),
+    p25 = quantile(dist, 0.25),
+    p50 = quantile(dist, 0.5),
+    p75 = quantile(dist, 0.75),
+    p80 = quantile(dist, 0.8),
+    p90 = quantile(dist, 0.9),
+    p95 = quantile(dist, 0.95),
+    max = max(dist),
+    mean = mean(dist),
+    count = dplyr::n()
+  )
+
+```
