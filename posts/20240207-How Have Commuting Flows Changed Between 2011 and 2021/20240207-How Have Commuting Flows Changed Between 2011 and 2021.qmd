@@ -131,7 +131,8 @@ flow_2021 <- db |>
 flow_2011 <- db |>
   dplyr::tbl("WF03UK_oa_v1") |>
   dplyr::filter(area_of_workplace %in% oa11cd_f) |>
-  dplyr::collect()
+  dplyr::collect() |>
+  dplyr::filter(stringr::str_detect(area_of_usual_residence, "^E|^W"))
 
 ```
 

@@ -53,7 +53,7 @@
     "href": "posts/20240207-How Have Commuting Flows Changed Between 2011 and 2021/20240207-How Have Commuting Flows Changed Between 2011 and 2021.html#extract-the-census-flow-data-for-those-output-areas",
     "title": "Commuting Flows",
     "section": "Extract the Census Flow Data for Those Output Areas",
-    "text": "Extract the Census Flow Data for Those Output Areas\n\n\nCode\noa21cd_f &lt;- oa_2021 |&gt;\n  dplyr::as_tibble() |&gt;\n  dplyr::pull(oa21cd) |&gt;\n  unique()\n\noa11cd_f &lt;- oa_2011 |&gt;\n  dplyr::as_tibble() |&gt;\n  dplyr::pull(geo_code) |&gt;\n  unique()\n\n\nflow_2021 &lt;- db |&gt;\n  dplyr::tbl(\"ODWP01EW_OA\") |&gt;\n  dplyr::filter(`oa_of_workplace_code` %in% oa21cd_f) |&gt;\n  dplyr::collect()\n\nflow_2011 &lt;- db |&gt;\n  dplyr::tbl(\"WF03UK_oa_v1\") |&gt;\n  dplyr::filter(area_of_workplace %in% oa11cd_f) |&gt;\n  dplyr::collect()"
+    "text": "Extract the Census Flow Data for Those Output Areas\n\n\nCode\noa21cd_f &lt;- oa_2021 |&gt;\n  dplyr::as_tibble() |&gt;\n  dplyr::pull(oa21cd) |&gt;\n  unique()\n\noa11cd_f &lt;- oa_2011 |&gt;\n  dplyr::as_tibble() |&gt;\n  dplyr::pull(geo_code) |&gt;\n  unique()\n\n\nflow_2021 &lt;- db |&gt;\n  dplyr::tbl(\"ODWP01EW_OA\") |&gt;\n  dplyr::filter(`oa_of_workplace_code` %in% oa21cd_f) |&gt;\n  dplyr::collect()\n\nflow_2011 &lt;- db |&gt;\n  dplyr::tbl(\"WF03UK_oa_v1\") |&gt;\n  dplyr::filter(area_of_workplace %in% oa11cd_f) |&gt;\n  dplyr::collect() |&gt;\n  dplyr::filter(stringr::str_detect(area_of_usual_residence, \"^E|^W\"))"
   },
   {
     "objectID": "posts/20240207-How Have Commuting Flows Changed Between 2011 and 2021/20240207-How Have Commuting Flows Changed Between 2011 and 2021.html#calculate-the-distance-between-work-areas",
